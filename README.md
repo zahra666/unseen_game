@@ -35,6 +35,11 @@ All patients are fictional. For health education only; not medical advice.
 本项目为 MIT Hacking Medicine Malaysia 2026 参赛作品。
 Built for MIT Hacking Medicine Malaysia 2026.
 
+## 隐私 / Privacy
+
+游戏使用 [Umami](https://umami.is) 匿名统计游玩数据：访问人数、停留时长、所选难度和判定结果。不使用 cookie，不收集任何个人信息，数据存储在欧盟服务器。
+The game uses [Umami](https://umami.is) for anonymous play statistics: visits, time on page, difficulty chosen and verdicts. No cookies and no personal information; data is stored on EU servers.
+
 ## 本地运行 / Run locally
 
 游戏是一个独立的 `index.html` 文件，用浏览器直接打开即可。

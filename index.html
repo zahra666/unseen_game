@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="看见她 Unseen：一款 PCOS 诊断科普游戏。 A bilingual PCOS diagnosis game.">
+<script defer src="https://cloud.umami.is/script.js" data-website-id="2ab0e66d-dc83-402f-9936-2f6b55c11c88"></script>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>看见她 Unseen</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -253,6 +254,7 @@ blockquote{margin:20px 0;padding:14px 18px;border-left:3px solid var(--accent);b
 const L = o => (o && typeof o==='object') ? (o[S.lang] ?? o.zh) : o;
 const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const t = (zh,en)=>({zh,en});
+const track=(n,d)=>{try{if(window.umami&&window.umami.track)window.umami.track(n,d)}catch(e){}};
 const H = (zh,en)=>({zh,en,f:1}), N = (zh,en)=>({zh,en});
 
 /* ---------- strings ---------- */
@@ -289,7 +291,8 @@ const T = {
   clear:t('清除存档','Clear saved game'), cleared:t('存档已清除。','Saved game cleared.'), clearConfirm:t('确认清除','Confirm clear'),
   archived:t('旧病历','Archived'), yrs:t('岁','yrs'), ask:t('追问：','Follow-up: '), asked:t('追问','Follow-up'),
   resulted:t('已出','Done'), home:t('首页','Title'), choose:t('选择','Select'), chosen:t('已选择','Selected'), start:t('开始','Start'), back:t('返回首页','Back'),
-  red:t('红旗病例：判错扣双倍。','Red-flag case: a wrong call costs double.')
+  red:t('红旗病例：判错扣双倍。','Red-flag case: a wrong call costs double.'),
+  privacy:t('本游戏匿名统计游玩数据（人数、时长、判定结果），不收集任何个人信息。','This game records anonymous play statistics (visits, time, verdicts). No personal information is collected.')
 };
 
 /* ---------- difficulties ---------- */
@@ -752,7 +755,7 @@ function bar(){
     <button class="gear" data-modal="settings" aria-label="${esc(L(T.settings))}">⚙</button>
   </div></header>`;
 }
-const foot=()=>`<div class="wrap foot">${esc(L(T.disclaimer))}</div>`;
+const foot=()=>`<div class="wrap foot">${esc(L(T.disclaimer))}<br>${esc(L(T.privacy))}</div>`;
 
 function vTitle(){
   const sv=saved(),b=bests();
@@ -770,7 +773,7 @@ function vTitle(){
         </ul></div>
       <div class="mascot"><canvas id="ovary" width="312" height="240" aria-hidden="true"></canvas></div>
     </div>
-    <div class="bottom"><span>${DIFF.map(d=>`${esc(L(d.name))} ${esc(L(T.best))} <b>${b[d.k]??0}</b>`).join(' · ')}</span><span>${esc(L(T.disclaimer))}</span></div>
+    <div class="bottom"><span>${DIFF.map(d=>`${esc(L(d.name))} ${esc(L(T.best))} <b>${b[d.k]??0}</b>`).join(' · ')}</span><span>${esc(L(T.disclaimer))}</span><span>${esc(L(T.privacy))}</span></div>
   </main>`;
   startMascot();
 }
@@ -961,9 +964,9 @@ const top=()=>window.scrollTo({top:0});
 app.addEventListener('click',e=>{
   if(e.target.dataset&&e.target.dataset.veil){S.modal=null;S.msg=null;render();return}
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
-  if(d.lang){S.lang=d.lang;savePrefs();render();return}
-  if(d.skin){S.skin=d.skin;savePrefs();render();return}
-  if(d.modal){S.modal=d.modal;S.msg=null;render();return}
+  if(d.lang){S.lang=d.lang;savePrefs();track('setting_language',{lang:S.lang});render();return}
+  if(d.skin){S.skin=d.skin;savePrefs();track('setting_skin',{skin:S.skin});render();return}
+  if(d.modal){S.modal=d.modal;S.msg=null;track('open_'+d.modal,{screen:S.screen});render();return}
   if(d.mtab){S.mtab=d.mtab;render();return}
   if(d.close){S.modal=null;S.msg=null;render();return}
   if(d.diff){S.diff=+d.diff;render();return}
@@ -979,18 +982,27 @@ app.addEventListener('click',e=>{
     render();return}
   switch(d.act){
     case 'new':{const l=S.lang,sk=S.skin;S=fresh(l,sk);S.screen='diff';render();top();break}
-    case 'go':newRun(S.diff);render();top();break;
-    case 'continue':{const sv=saved();if(sv){S={...fresh(S.lang,S.skin),...sv,lang:S.lang,skin:S.skin};render();top()}break}
-    case 'tutorial':newRun(0);S.screen='play';S.tut=0;render();top();break;
+    case 'go':newRun(S.diff);track('game_start',{difficulty:D().k,family_day:S.famDay>=0?S.famDay+1:0});render();top();break;
+    case 'continue':{const sv=saved();if(sv){S={...fresh(S.lang,S.skin),...sv,lang:S.lang,skin:S.skin};track('game_continue',{difficulty:D().k,day:S.day+1});render();top()}break}
+    case 'tutorial':newRun(0);S.screen='play';S.tut=0;track('tutorial_start');render();top();break;
     case 'tutNext':S.tut=S.tut<TUT.length-1?S.tut+1:null;render();if(S.tut==null)top();break;
-    case 'tutSkip':S.tut=null;render();top();break;
+    case 'tutSkip':track('tutorial_skip',{step:S.tut+1});S.tut=null;render();top();break;
     case 'home':S=fresh(S.lang,S.skin);render();top();break;
     case 'begin':S.screen='play';S.time=D().time;S.cur=null;render();top();break;
     case 'confirm':{const c=CASE[S.cur],ch=S.pick[c.id];if(!ch||(Array.isArray(ch)&&!ch.length))return;
       const choice=Array.isArray(ch)?[...ch]:ch;S.verdicts[c.id]={choice,...judge(c,choice)};render();break}
-    case 'settle':S.score+=today().reduce((s,c)=>s+S.verdicts[c.id].pts,0);S.screen='settle';render();top();break;
+    case 'settle':{
+      const list=today(),dayPts=list.reduce((s,c)=>s+S.verdicts[c.id].pts,0);S.score+=dayPts;
+      list.forEach(c=>{const v=S.verdicts[c.id],mins=revOf(c.id).reduce((m,k)=>m+(k.startsWith('ask')?1:CLUE[k].c),0);
+        track('case_result',{difficulty:D().k,case_id:c.id,result:v.exact?'correct':(v.pts>0?'partial':'wrong'),verdict:Array.isArray(v.choice)?v.choice.join('+'):v.choice,minutes_used:mins,clues_used:revOf(c.id).length,red_flag:c.red?1:0,family:c.fam||'none'})});
+      track('day_complete',{difficulty:D().k,day:S.day+1,day_score:dayPts,correct:list.filter(c=>S.verdicts[c.id].exact).length,minutes_left:S.time});
+      S.screen='settle';render();top();break}
     case 'next':S.day++;S.screen='day';S.cur=null;render();top();break;
-    case 'end':S.screen='end';render();top();break;
+    case 'end':{
+      const all=S.days.flat(),ok=all.filter(id=>S.verdicts[id]&&S.verdicts[id].exact).length;
+      const fam=S.famDay<0?'none':(['f1','f2'].some(id=>S.verdicts[id]&&S.verdicts[id].notes.includes('bonus'))?'noticed':'missed');
+      track('run_end',{difficulty:D().k,score:S.score,correct:ok,total:all.length,family:fam});
+      S.screen='end';render();top();break}
     case 'clear':S.msg='confirmClear';render();break;
     case 'clearYes':store.del('unseen-save2');S.msg='cleared';render();break;
   }
