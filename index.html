@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="看见她 Unseen：一款 PCOS 诊断科普游戏。 A bilingual PCOS diagnosis game.">
+<meta name="description" content="看见她 Unseen：当一天医生，学会认出 PCOS 的信号。Spend a day as a doctor and learn the signs of PCOS.">
 <script defer src="https://cloud.umami.is/script.js" data-website-id="2ab0e66d-dc83-402f-9936-2f6b55c11c88"></script>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>看见她 Unseen</title>
@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&family=Silkscreen&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
 <style>
-/* Layout: a night-shift clinic terminal. Title = menu left, pixel ovary mascot right.
+/* Layout: a clinic terminal survival game. Title = menu left, pixel ovary mascot right.
    Game = order sheet | patient chart (lab-report rows) | queue + verdict. Own light/dark skin setting. */
 :root{
   --bg:#F1EEF0; --panel:#FBFAFA; --panel2:#F4F0F2; --line:#D6CDD3; --ink:#231B21; --muted:#7B7078;
@@ -243,6 +243,30 @@ blockquote{margin:20px 0;padding:14px 18px;border-left:3px solid var(--accent);b
 .vgrid{display:grid;gap:6px}
 .vopt.small{padding:7px 10px;font-size:14px}
 @media (max-width:980px){.diffgrid{grid-template-columns:minmax(0,1fr)}.dcard{min-height:0}}
+
+/* ---------- survival UI ---------- */
+.pips{display:inline-flex;gap:4px;margin-top:5px}
+.pip{width:11px;height:11px;border:1.5px solid var(--muted);border-radius:2px;display:inline-block}
+.pip.on{background:var(--flag);border-color:var(--flag)}
+.daystats{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 22px}
+.daystats>div{background:var(--panel);border:1px solid var(--line);padding:10px 14px;display:flex;flex-direction:column;gap:2px;min-width:120px;border-radius:2px}
+.daystats b{font-family:var(--f-mono);font-size:20px;font-weight:500;color:var(--accent)}
+.panel.money{padding:16px 18px}
+.tbl tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+.tbl td.n.plus{color:var(--ok)} .tbl td.n.minus{color:var(--flag)}
+.bigline{font-size:20px;margin:14px 0 6px}
+.signcard{margin-top:26px;background:var(--panel);border:2px solid var(--accent);padding:22px 24px;border-radius:2px}
+.signcard h2{font-family:var(--f-pixel);font-weight:400;font-size:clamp(28px,4vw,38px);margin-bottom:8px}
+.signcard h3{margin:20px 0 10px;font-size:15px}
+.signs{margin:12px 0;padding-left:1.4em;display:grid;gap:6px;font-size:16px}
+.signcard .action{font-weight:700;font-size:17px;background:var(--accent-dim);padding:10px 14px;margin:14px 0 0;border-radius:2px}
+.chip.strike{text-decoration:line-through;text-decoration-color:var(--flag);cursor:default}
+.sharebox{margin-top:22px;border:1px dashed var(--line);padding:16px 18px;border-radius:2px}
+.sharebox h3{font-size:15px;margin-bottom:8px}
+.sharetext{font-size:14px;background:var(--panel2);padding:10px 12px;margin:0 0 12px;user-select:all;overflow-wrap:anywhere}
+.steps{padding-left:1.3em;display:grid;gap:8px;margin:0 0 14px}
+.famblock{margin-top:32px}
+.row .h{color:var(--flag);font-weight:700}
 </style>
 </head>
 <body>
@@ -254,473 +278,456 @@ blockquote{margin:20px 0;padding:14px 18px;border-left:3px solid var(--accent);b
 const L = o => (o && typeof o==='object') ? (o[S.lang] ?? o.zh) : o;
 const esc = s => String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const t = (zh,en)=>({zh,en});
-const track=(n,d)=>{try{if(window.umami&&window.umami.track)window.umami.track(n,d)}catch(e){}};
 const H = (zh,en)=>({zh,en,f:1}), N = (zh,en)=>({zh,en});
+const track=(n,d)=>{try{if(window.umami&&window.umami.track)window.umami.track(n,d)}catch(e){}};
+const GAME_URL='https://zahra666.github.io/unseen_game/';
+const fill=(s,o)=>String(s).replace(/\{(\w+)\}/g,(_,k)=>o[k]);
 
-/* ---------- strings ---------- */
+/* ---------- words ---------- */
 const T = {
-  newGame:t('新游戏','New game'), cont:t('继续游戏','Continue'), manual:t('游戏手册','Handbook'), tutorial:t('新手指引','Orientation'), settings:t('设置','Settings'),
-  best:t('最佳','Best'), disclaimer:t('病例与人物均为虚构，仅供医学科普，不构成诊疗建议。','All patients are fictional. For health education only, not medical advice.'),
-  time:t('门诊剩余','Clinic time'), min:t('分钟','min'), score:t('得分','Score'), day:t('第 {n} 天','Day {n}'),
-  begin:t('开始接诊','Open the clinic'), chooseDiff:t('选择难度','Choose difficulty'),
-  orders:t('检查单','Order sheet'), today:t('今日候诊','Today’s patients'),
-  complaint:t('主诉','Chief complaint'), file:t('既往档案','Past records'),
-  item:t('项目','Item'), result:t('结果','Result'),
-  noclue:t('暂无结果。请从检查单中选择问诊、查体或检查项目。','No results yet. Choose history, examination or tests from the order sheet.'),
-  notes:t('诊断笔记 · 鹿特丹标准','Notes · Rotterdam criteria'),
-  c1:t('稀发排卵或无排卵','Oligo- or anovulation'), c2:t('高雄激素表现','Hyperandrogenism'), c3:t('卵巢多囊样改变','Polycystic ovarian morphology'),
-  ruled:t('排除性检查','Exclusion tests'),
-  verdict:t('判定','Verdict'), verdictMulti:t('诊断（可多选）','Diagnoses (select all that apply)'),
-  submit:t('提交判定','Submit'), judged:t('已提交。结果在当日结算时公布。','Submitted. Results are released at the end-of-day review.'),
-  waiting:t('候诊','Waiting'), done:t('已判','Done'),
-  settleBtn:t('结束门诊 · 结算','Close clinic · Review'), nextPt:t('下一位','Next patient'),
-  review:t('门诊日结算','End-of-day review'),
-  you:t('你的判定','Your verdict'), right:t('正确答案','Correct answer'),
-  caseReview:t('病例解析','Case review'),
-  truth:t('最终诊断','Final diagnosis'), key:t('关键依据','Key evidence'), trap:t('易错点','Pitfall'), outcome:t('随访','Follow-up'),
-  dayTotal:t('今日','Today'), nextDay:t('进入下一天','Next day'), finish:t('查看接诊记录','Open your record'),
-  endTitle:t('接诊记录','Clinic record'), accuracy:t('判对','Correct'),
-  famUnlock:t('隐藏档案已解锁','Hidden file unlocked'),
-  famTitle:t('那天上午的三位病人，是一家人。','That morning’s three patients were one family.'),
-  famBody:t('外婆秀兰、妈妈美华、女儿晓雯。三代人，同一种病。PCOS 有明显的家族聚集倾向：母亲或姐妹患有 PCOS，本人的患病风险更高。外婆和妈妈的病从来没人往这里想，晓雯是第一个有机会在 20 岁就被看见的人。','Grandmother Xiulan, mother Meihua, daughter Xiaowen. Three generations, one condition. PCOS clusters in families: a mother or sister with PCOS raises a woman’s own risk. Nobody ever thought of it for the grandmother or the mother. Xiaowen is the first with a chance to be seen at 20.'),
-  noticed:t('你在接诊时就看出了三代人共同的病。','You recognised the condition the three generations share.'),
-  notNoticed:t('她们的家族史一直指向彼此。下次遇到一家人，把她们放在一起看。','Their family histories pointed to each other all along. When a family comes in together, read them together.'),
+  newGame:t('新游戏','New game'), cont:t('继续游戏','Continue'), manual:t('游戏手册','How to play'), tutorial:t('新手指引','Tutorial'), settings:t('设置','Settings'),
+  bestDays:t('最多撑了','Best'), days:t('{n} 天','{n} days'), day:t('第 {n} 天','Day {n}'),
+  disclaimer:t('病人和故事都是虚构的。游戏只做科普，不能代替看医生。','All patients are made up. This game is for learning and does not replace seeing a doctor.'),
+  privacy:t('游戏会匿名统计玩家人数和游玩结果，不收集任何个人信息。','We count players and results anonymously. No personal information is collected.'),
+  money:t('存款','Savings'), rent:t('今晚房租','Rent tonight'), complaints:t('投诉','Complaints'), time:t('剩余时间','Time left'), min:t('分钟','min'),
+  begin:t('开门看诊','Open the clinic'), chooseDiff:t('选择难度','Choose difficulty'),
+  asks:t('问诊和检查','Questions and tests'), today:t('今天的病人','Today’s patients'),
+  says:t('她说','She says'), file:t('以前的记录','Past records'),
+  item:t('问了 / 查了','Asked / tested'), result:t('结果','Result'),
+  noclue:t('还没有问任何问题。从左边选一项开始吧。','Nothing asked yet. Pick a question or test on the left.'),
+  notes:t('PCOS 信号小本子','PCOS sign notebook'),
+  s1:t('月经很少或不准','Rare or irregular periods'), s2:t('粗毛、痘痘、掉头发','Coarse hair, spots, hair loss'), s3:t('检查：卵泡多或激素高','Tests: many follicles or high hormones'),
+  notesHint:t('同时有 2 个以上，就要想到 PCOS。','Two or more at once? Think PCOS.'),
+  pregChip:t('先验孕','Pregnancy test first'),
+  verdict:t('你的建议','Your advice'), submit:t('就这么建议','Give this advice'),
+  judged:t('建议已经给出。结果晚上下班时揭晓。','Advice given. You’ll find out tonight.'),
+  waiting:t('等候','Waiting'), done:t('看完','Seen'),
+  settleBtn:t('下班，算账','Close up and settle'), nextPt:t('下一位','Next patient'),
+  nightTitle:t('第 {n} 天 · 下班','Day {n} · closing time'),
+  yourAdvice:t('你的建议','Your advice'), answer:t('正确答案','Right answer'),
+  why:t('她到底怎么了','What was going on'),
+  what:t('她怎么了','What it was'), signs:t('关键信号','The signs'), miss:t('容易忽略的地方','Easy to miss'), later:t('后来','Afterwards'),
+  ledger:t('今天的账','Today’s money'), start:t('早上存款','Morning savings'), pay:t('工资','Pay'), fines:t('罚款','Fines'), rentPaid:t('房租','Rent'), endMoney:t('晚上存款','Evening savings'),
+  nextDay:t('睡一觉，第二天','Sleep, then day {n}'), seeEnd:t('看结局','See what happened'),
+  complaintNew:t('被投诉了！','Complaint filed!'),
+  fired:t('你被诊所辞退了','You’ve been fired'), firedBody:t('收到 3 次投诉后，诊所决定不再让你上班。','After three complaints, the clinic let you go.'),
+  evicted:t('你被房东赶出家门了','You’ve been evicted'), evictedBody:t('存款交不起房租，房东让你今晚就搬走。','Your savings couldn’t cover the rent. The landlord wants you out tonight.'),
+  survived:t('你撑了 {d} 天，看了 {p} 位病人。','You lasted {d} days and saw {p} patients.'),
+  caught:t('发现 PCOS','PCOS found'), missed:t('漏掉 PCOS','PCOS missed'), right:t('建议正确','Right advice'),
+  signsTitle:t('记住这些信号','Remember these signs'),
+  signsLead:t('PCOS（多囊卵巢综合征）很常见，大约每 10 个女性就有 1 个，很多人自己不知道。','PCOS (polycystic ovary syndrome) is common: about 1 in 10 women have it, and many don’t know.'),
+  signList:[t('月经很久才来一次（超过 35 天），或一年少于 8 次','Periods more than 35 days apart, or fewer than 8 a year'),t('下巴、嘴唇、胸口、肚子长粗黑的毛','Coarse dark hair on the chin, lip, chest or belly'),t('痘痘反复长在下巴和下颌','Spots that keep coming back on the chin and jaw'),t('头顶头发越来越稀','Hair thinning on top of the head'),t('体重容易涨，尤其是肚子','Weight that piles on easily, especially round the middle'),t('脖子后面、腋下皮肤发黑','Dark, velvety skin on the neck or armpits'),t('想怀孕，很久怀不上','Trying for a baby for a long time without success')],
+  signsAction:t('出现 2–3 个，就去看妇科或内分泌科，直接说：“我想查一下 PCOS。”','Notice two or three? See a gynaecologist or hormone specialist and say, “I’d like to be checked for PCOS.”'),
+  dontSay:t('别再这样对自己说','Stop telling yourself'),
+  dontList:[t('“最近太累了。”','“I’m just tired.”'),t('“压力大、熬夜而已。”','“It’s stress and late nights.”'),t('“胖了，减肥就好。”','“I just need to lose weight.”'),t('“女孩子月经不准很正常。”','“Irregular periods are normal for girls.”'),t('“痛经忍忍就过去了。”','“Period pain is something you just put up with.”')],
+  painNote:t('痛经严重不是 PCOS 的典型信号，但也值得看医生，可能是子宫内膜异位症等问题。','Severe period pain is not a typical PCOS sign, but it is still worth a doctor’s visit; it can be endometriosis or another condition.'),
+  share:t('转给你在意的人','Send this to someone you care about'), copy:t('复制链接和这段话','Copy link and message'), copied:t('已复制，去发给她吧。','Copied. Go send it.'), copyFail:t('复制不了，请长按下面的文字手动复制。','Couldn’t copy. Press and hold the text below to copy it.'),
+  shareText:t('我在《看见她》里当了 {d} 天医生。你知道 PCOS 的这些信号吗？月经很少、长粗毛、痘痘反复、头顶掉发……出现 2–3 个就该去查一查。来玩：','I spent {d} days as a doctor in Unseen. Do you know the signs of PCOS? Rare periods, coarse hair, stubborn spots, thinning hair... two or three means get checked. Play here:'),
+  again:t('再来一局','Play again'), home:t('回到首页','Back to title'), close:t('关闭','Close'), lang:t('语言','Language'),
+  clear:t('清除存档','Clear saved game'), cleared:t('存档已清除。','Saved game cleared.'), clearConfirm:t('确定清除','Yes, clear it'),
+  yrs:t('岁','yrs'), ask:t('追问：','Ask: '), asked:t('追问','Asked'), doneMark:t('已问','Done'),
+  choose:t('选这个','Choose'), chosen:t('已选','Chosen'), startGame:t('开始','Start'), back:t('返回','Back'),
+  famUnlock:t('隐藏故事','Hidden story'),
+  famTitle:t('那天来的三位病人，是一家人。','Three of the patients that day were one family.'),
+  famBody:t('外婆秀兰、妈妈美华、女儿晓雯。三代人，同一种病。PCOS 常常在家族里出现：妈妈或姐妹有 PCOS，自己的风险也更高。外婆和妈妈的病，几十年都没人往这里想；晓雯是第一个有机会在 20 岁就被看见的人。','Grandma Xiulan, mum Meihua, daughter Xiaowen. Three generations, one condition. PCOS runs in families: if your mum or sister has it, your risk is higher too. For decades nobody thought of it for the grandmother or the mother. Xiaowen was the first with a chance to be seen at 20.'),
   seen:t('被看见了','Seen'), unseen:t('被忽视了','Missed'),
-  ifquote:t('如果 19 岁的秀兰遇到了你，她的 PCOS 会被发现，1978 年怀孕时的血糖会被筛查。她的心脏，也许根本不会出问题。','If Xiulan had met you at 19, her PCOS would have been found and her blood sugar screened in her 1978 pregnancy. Her heart might never have been at risk.'),
-  again:t('返回首页','Back to title'), close:t('关闭','Close'), lang:t('语言','Language'),
-  clear:t('清除存档','Clear saved game'), cleared:t('存档已清除。','Saved game cleared.'), clearConfirm:t('确认清除','Confirm clear'),
-  archived:t('旧病历','Archived'), yrs:t('岁','yrs'), ask:t('追问：','Follow-up: '), asked:t('追问','Follow-up'),
-  resulted:t('已出','Done'), home:t('首页','Title'), choose:t('选择','Select'), chosen:t('已选择','Selected'), start:t('开始','Start'), back:t('返回首页','Back'),
-  red:t('红旗病例：判错扣双倍。','Red-flag case: a wrong call costs double.'),
-  privacy:t('本游戏匿名统计游玩数据（人数、时长、判定结果），不收集任何个人信息。','This game records anonymous play statistics (visits, time, verdicts). No personal information is collected.')
+  ifquote:t('如果 19 岁的秀兰遇到了你，她的 PCOS 会早早被发现，怀孕时的血糖也会被检查。她的心脏，也许根本不会出问题。','If Xiulan had met you at 19, her PCOS would have been found early and her blood sugar checked when she was pregnant. Her heart might never have been at risk.'),
+  pregNote:t('没先验孕就说是 PCOS，工资减半。','Called PCOS without a pregnancy test first: half pay.'),
+  red:t('急症','Urgent')
 };
 
-/* ---------- difficulties ---------- */
+/* ---------- difficulty ---------- */
 const DIFF = [
-  {k:'easy', name:t('简单','Easy'), level:t('典型表现 · 线索一致','Typical signs · clues agree'), time:75, multi:false,
-   desc:t('症状典型，2–3 项线索互相印证。适合熟悉鹿特丹标准和排除性检查。','Typical presentations: two or three clues point the same way. Learn the Rotterdam criteria and the exclusion tests.'),
-   verdict:t('三选一','One of three'),
-   intro:[t('PCOS 的诊断采用鹿特丹标准：以下三项满足两项，并排除其他病因。','PCOS is diagnosed by the Rotterdam criteria: two of the three features below, after other causes are excluded.'),
-          t('单一症状不足以诊断，超声报告上的“多囊”二字也不够。','A single symptom is not enough, and nor is the word “polycystic” on a scan report.')]},
-  {k:'medium', name:t('中等','Medium'), level:t('病因被掩盖 · 需要鉴别','Hidden causes · differentials'), time:65, multi:true,
-   desc:t('其他疾病与 PCOS 表现相似，或者 PCOS 被避孕药、体重、“压力大”掩盖。','Other diseases look like PCOS, or PCOS is hidden behind the pill, weight, or “stress”.'),
-   verdict:t('可多选','Multiple'),
-   intro:[t('先看病程：PCOS 多在青春期起病、进展缓慢。近期新出现的症状，应先考虑其他疾病。','Check the time course first. PCOS usually begins in adolescence and progresses slowly. New, recent symptoms point elsewhere.'),
-          t('再找每种疾病的特征性表现。从本难度起可以作出多项诊断。','Then look for each disease’s distinguishing feature. From this level you may record several diagnoses.')]},
-  {k:'hard', name:t('困难','Hard'), level:t('多病共存 · 记录缺失','Overlapping disease · missing records'), time:55, multi:true, family:true,
-   desc:t('一位病人可能同时患有几种疾病，既往记录也常常缺失。有时只能从家族病史里找到线索。','One patient may have several conditions at once, and past records are often missing. Sometimes the only clue is in the family history.'),
-   verdict:t('可多选','Multiple'),
-   intro:[t('病人可能同时患有几种疾病，一种疾病也可能导致多项检查异常。','A patient may have several conditions, and one condition can cause several abnormal results.'),
-          t('很多病人的既往记录不完整，或者记不清过去的情况。读一读她的家族史：家人的病，可能就是她的病。','Many patients have incomplete records or cannot recall their past. Read the family history: her relatives’ illness may be hers too.')]}
+  {k:'easy', name:t('简单','Easy'), tag:t('信号很明显','Clear signs'), money:1000, rent:250, time:60,
+   desc:t('病人的信号比较明显，很适合第一次玩。学会数信号：月经少、粗毛痘痘掉发、检查异常。','Signs are fairly clear. A good first game: learn to count the signs.')},
+  {k:'medium', name:t('中等','Medium'), tag:t('有别的病来捣乱','Other problems get in the way'), money:800, rent:300, time:50,
+   desc:t('有的病看起来很像 PCOS，有的 PCOS 被“压力大”“太胖”或避孕药藏起来了。','Some illnesses look like PCOS, and some PCOS hides behind “stress”, weight or the pill.')},
+  {k:'hard', name:t('困难','Hard'), tag:t('好几个问题叠在一起','Several problems at once'), money:700, rent:350, time:45, family:true,
+   desc:t('一个病人可能同时有几个问题，以前的记录也常常没有。还会遇到需要马上处理的急症。','One patient may have several problems and no past records. Some cases are emergencies.')}
 ];
-const DAYS = 3;
-const BULLETIN = [t('公告：今天一切如常。','Notice: business as usual.'),t('公告：下午有暴雨，请病人尽早就诊。','Notice: storms this afternoon; patients asked to come early.'),t('公告：化验室今天排队较长。','Notice: the lab queue is long today.'),t('公告：护士站新换了一台血压计。','Notice: the nurses’ station has a new BP monitor.')];
-const FAMILY_BULLETIN = t('公告：今天上午有家属陪同就诊。','Notice: some patients this morning come with family.');
+const RENT_STEP=50, RENT_EVERY=3, PAY=200, PART_PAY=80, FINE=100, RED_FINE=300, MAX_COMPLAINTS=3;
+const BULLETIN=[t('今天天气不错。','Nice weather today.'),t('听说楼下新开了一家奶茶店。','A new bubble tea shop opened downstairs.'),t('护士说今天候诊的人有点多。','The nurse says it’s busy today.'),t('房东发消息提醒你记得交房租。','Your landlord texted: don’t forget the rent.'),t('诊所的空调又坏了。','The clinic air-con broke again.'),t('院长说最近投诉有点多，让大家注意。','The director says complaints are up; be careful.')];
+const FAMILY_BULLETIN=t('护士说：上午有一家三口一起来看病。','The nurse says a family of three is coming in together this morning.');
 
-/* ---------- diagnoses ---------- */
-const V1 = [{k:'pcos',n:t('确诊 PCOS','Diagnose PCOS')},{k:'exclude',n:t('排除 PCOS','Rule out PCOS')},{k:'refer',n:t('转诊（其他病因）','Refer (other cause)')}];
-const VM = [
-  {k:'pcos',n:t('多囊卵巢综合征（PCOS）','Polycystic ovary syndrome (PCOS)')},
-  {k:'thyroid',n:t('甲状腺功能异常','Thyroid dysfunction')},
-  {k:'prolactin',n:t('高泌乳素血症','Hyperprolactinaemia')},
-  {k:'pregnancy',n:t('妊娠','Pregnancy')},
-  {k:'hypothalamic',n:t('功能性下丘脑性闭经','Functional hypothalamic amenorrhoea')},
-  {k:'cushing',n:t('库欣综合征','Cushing’s syndrome')},
-  {k:'cah',n:t('非经典型先天性肾上腺皮质增生','Non-classic CAH')},
-  {k:'tumor',n:t('分泌雄激素的肿瘤','Androgen-secreting tumour')},
-  {k:'peri',n:t('围绝经期','Perimenopause')},
-  {k:'metabolic',n:t('代谢异常（血压、血糖）','Metabolic disease (BP, glucose)')},
-  {k:'cardiac',n:t('心血管评估（转心内科）','Cardiac assessment (refer)')},
-  {k:'none',n:t('未见明显疾病','No disease found')}
+/* ---------- advice ---------- */
+const V = [
+  {k:'pcos',n:t('可能是 PCOS，建议去查','Could be PCOS: get it checked')},
+  {k:'other',n:t('可能是别的问题，建议看其他科','Something else: see another specialist')},
+  {k:'fine',n:t('暂时没事，放心','Nothing to worry about for now')}
 ];
-const VNAME = Object.fromEntries([...V1,...VM].map(v=>[v.k,v.n]));
+const VNAME=Object.fromEntries(V.map(v=>[v.k,v.n]));
 
-/* ---------- orders ---------- */
-const GROUPS = [{g:'hx',n:t('病史采集','History')},{g:'exam',n:t('体格检查','Examination')},{g:'lab',n:t('实验室检查','Laboratory')},{g:'img',n:t('影像学检查','Imaging')}];
-const CLUES = [
-  {k:'menstrual',g:'hx',c:2,n:t('月经史','Menstrual history'),d:t('初潮年龄、周期长度、近期变化','Menarche, cycle length, recent change')},
-  {k:'skin',g:'hx',c:2,n:t('皮肤与毛发','Skin and hair'),d:t('痤疮、多毛、脱发（自述）','Acne, hirsutism, hair loss (reported)')},
-  {k:'symptoms',g:'hx',c:2,n:t('伴随症状','Associated symptoms'),d:t('怕冷、乏力、头痛、溢乳、潮热等','Cold intolerance, fatigue, headache, galactorrhoea, flushes')},
-  {k:'meds',g:'hx',c:2,n:t('用药史','Medication history'),d:t('避孕药及其他长期用药','Contraceptives and long-term medication')},
-  {k:'family',g:'hx',c:2,n:t('家族史','Family history'),d:t('糖尿病、心血管病、月经异常','Diabetes, heart disease, menstrual problems')},
-  {k:'body',g:'exam',c:3,n:t('身高、体重、腰围','Height, weight, waist'),d:t('BMI 与腰围','BMI and waist circumference')},
-  {k:'skinsign',g:'exam',c:3,n:t('皮肤体征','Skin examination'),d:t('多毛评分、黑棘皮、紫纹','Hirsutism score, acanthosis, striae')},
-  {k:'bp',g:'exam',c:3,n:t('血压','Blood pressure'),d:t('心血管与代谢风险','Cardiovascular and metabolic risk')},
-  {k:'ecg',g:'exam',c:5,n:t('心电图','ECG'),d:t('心肌缺血、心律失常','Ischaemia, arrhythmia')},
-  {k:'preg',g:'lab',c:2,n:t('妊娠试验（hCG）','Pregnancy test (hCG)'),d:t('停经首先排除妊娠','Exclude pregnancy first in any missed period')},
-  {k:'testo',g:'lab',c:8,n:t('血清总睾酮','Total testosterone'),d:t('生化高雄激素','Biochemical hyperandrogenism')},
-  {k:'tsh',g:'lab',c:8,n:t('促甲状腺激素（TSH）','TSH'),d:t('排除甲状腺疾病','Exclude thyroid disease')},
-  {k:'prl',g:'lab',c:8,n:t('血清泌乳素','Prolactin'),d:t('排除高泌乳素血症','Exclude hyperprolactinaemia')},
-  {k:'amh',g:'lab',c:10,n:t('抗苗勒管激素（AMH）','AMH'),d:t('成人可替代超声评估卵巢形态','Can replace ultrasound for ovarian morphology in adults')},
-  {k:'glucose',g:'lab',c:10,n:t('空腹血糖 / OGTT','Fasting glucose / OGTT'),d:t('糖代谢评估','Glucose metabolism')},
-  {k:'cortisol',g:'lab',c:12,n:t('皮质醇筛查','Cortisol screen'),d:t('排除库欣综合征','Exclude Cushing’s syndrome')},
-  {k:'ohp',g:'lab',c:12,n:t('17-羟孕酮（17-OHP）','17-OHP'),d:t('排除非经典型 CAH','Exclude non-classic CAH')},
-  {k:'us',g:'img',c:15,n:t('盆腔超声','Pelvic ultrasound'),d:t('卵巢形态；初潮后 8 年内不用于诊断','Ovarian morphology; not for diagnosis within 8 years of menarche')}
+/* ---------- questions & tests ---------- */
+const GROUPS=[{g:'hx',n:t('问问她','Ask her')},{g:'exam',n:t('看一看、量一量','Look and measure')},{g:'lab',n:t('验血、验尿','Blood and urine tests')},{g:'img',n:t('B 超','Ultrasound')}];
+const CLUES=[
+  {k:'menstrual',g:'hx',c:2,n:t('月经准不准？','Are your periods regular?'),d:t('多久来一次，什么时候开始变的','How often, and when it changed')},
+  {k:'skin',g:'hx',c:2,n:t('痘痘和毛发怎么样？','Any spots or hair changes?'),d:t('痘痘、粗毛、掉头发','Spots, coarse hair, hair loss')},
+  {k:'symptoms',g:'hx',c:2,n:t('最近身体还有哪里不舒服？','Anything else feel off?'),d:t('怕冷、发热、头痛、很累等','Cold, flushes, headaches, tiredness')},
+  {k:'meds',g:'hx',c:2,n:t('最近在吃什么药？','Taking any medicines?'),d:t('避孕药、胃药等','The pill, stomach medicine and so on')},
+  {k:'family',g:'hx',c:2,n:t('家里人有类似的情况吗？','Anyone in the family like this?'),d:t('妈妈、姐妹、外婆','Mum, sisters, grandma')},
+  {k:'body',g:'exam',c:3,n:t('量身高体重和腰围','Height, weight, waist'),d:t('胖瘦、肚子大不大','Weight and waistline')},
+  {k:'skinsign',g:'exam',c:3,n:t('看看皮肤','Look at her skin'),d:t('脖子发黑、紫红色条纹、粗毛','Dark neck, purple stretch marks, coarse hair')},
+  {k:'bp',g:'exam',c:3,n:t('量血压','Blood pressure'),d:t('血压高不高','Is it high?')},
+  {k:'ecg',g:'exam',c:5,n:t('做心电图','Heart tracing (ECG)'),d:t('心脏有没有问题','Any heart trouble?')},
+  {k:'preg',g:'lab',c:3,n:t('验孕','Pregnancy test'),d:t('月经不来，先排除怀孕','Rule out pregnancy first')},
+  {k:'testo',g:'lab',c:8,n:t('查雄激素','Male-type hormones'),d:t('雄激素高，会长粗毛、痘痘','High levels cause coarse hair and spots')},
+  {k:'tsh',g:'lab',c:8,n:t('查甲状腺','Thyroid'),d:t('甲状腺问题也会让月经乱','Thyroid problems also upset periods')},
+  {k:'prl',g:'lab',c:8,n:t('查泌乳素','Prolactin'),d:t('太高会停经、流奶','Too much stops periods and causes milky fluid')},
+  {k:'amh',g:'lab',c:8,n:t('查 AMH（卵泡多少）','AMH (follicle count)'),d:t('卵泡多，这项会偏高','High when there are many follicles')},
+  {k:'glucose',g:'lab',c:8,n:t('查血糖','Blood sugar'),d:t('PCOS 的人更容易血糖高','PCOS raises the risk of high blood sugar')},
+  {k:'cortisol',g:'lab',c:10,n:t('查压力激素（皮质醇）','Stress hormone (cortisol)'),d:t('太多会胖在肚子、长紫纹','Too much causes belly weight and purple marks')},
+  {k:'ohp',g:'lab',c:10,n:t('查肾上腺激素','Adrenal hormone'),d:t('一种遗传的肾上腺问题','For an inherited adrenal condition')},
+  {k:'us',g:'img',c:12,n:t('B 超看卵巢','Ovary scan'),d:t('卵泡多不多；刚来月经几年的女孩看不准','How many follicles; not reliable in young teens')}
 ];
-const CLUE = Object.fromEntries(CLUES.map(c=>[c.k,c]));
-const DEF = {
-  menstrual:t('规律，大约每月一次','Regular, about monthly'), skin:t('无痤疮、无多毛、无脱发','No acne, hirsutism or hair loss'),
-  symptoms:t('无特殊不适','Nothing notable'), meds:t('无长期用药','No regular medication'), family:t('无特殊','Nothing notable'),
-  body:t('BMI 22，腰围正常','BMI 22, normal waist'), skinsign:t('未见异常','Normal'), bp:t('正常','Normal'), ecg:t('正常','Normal'),
-  preg:t('阴性','Negative'), testo:t('正常','Normal'), tsh:t('正常','Normal'), prl:t('正常','Normal'), amh:t('正常','Normal'),
-  glucose:t('正常','Normal'), cortisol:t('正常','Normal'), ohp:t('正常','Normal'), us:t('未见明显异常','No significant findings')
-};
-const C = (o)=>o;
+const CLUE=Object.fromEntries(CLUES.map(c=>[c.k,c]));
+const DEF={menstrual:t('每个月都很准','Regular every month'),skin:t('没有痘痘、粗毛，也不掉头发','No spots, coarse hair or hair loss'),symptoms:t('没什么特别的','Nothing special'),meds:t('没有在吃药','No medicines'),family:t('没什么特别的','Nothing notable'),body:t('不胖不瘦','Healthy weight'),skinsign:t('正常','Normal'),bp:t('正常','Normal'),ecg:t('正常','Normal'),preg:t('阴性：没有怀孕','Negative: not pregnant'),testo:t('正常','Normal'),tsh:t('正常','Normal'),prl:t('正常','Normal'),amh:t('正常','Normal'),glucose:t('正常','Normal'),cortisol:t('正常','Normal'),ohp:t('正常','Normal'),us:t('正常','Normal')};
 
-/* ---------- case library ---------- */
+/* ---------- case library (plain language) ---------- */
+/* ans: 'pcos' | 'other' | 'fine'. part: an answer that earns partial pay. red: urgent case. */
 const CASES = [
 /* ===== EASY ===== */
-C({id:'e1',d:0,ini:'陈',name:t('陈佳怡','Chen Jiayi'),age:25,job:t('设计师','Designer'),
-  say:t('我脸上一直长痘，想来看看。','My skin keeps breaking out.'),
-  clues:{menstrual:N('初潮 12 岁，周期 27–31 天，一直规律','Menarche at 12; cycles 27–31 days, always regular'),skin:N('额头、鼻部痤疮，经前加重；无多毛','Acne on forehead and nose, worse premenstrually; no hirsutism'),body:N('BMI 21','BMI 21')},
-  answer:'exclude',
-  card:{truth:t('寻常痤疮，非 PCOS。','Acne vulgaris, not PCOS.'),key:t('月经规律，无高雄激素表现，三条标准均不满足。','Regular cycles and no hyperandrogenism: none of the three criteria.'),trap:t('痤疮很常见，单凭痤疮不足以怀疑 PCOS。','Acne is common. Acne alone does not justify suspecting PCOS.'),outcome:t('皮肤科治疗后痤疮好转。','Acne resolved with dermatology treatment.')}}),
-C({id:'e2',d:0,ini:'苏',name:t('苏晴','Su Qing'),age:19,job:t('大学生','University student'),
-  say:t('我就是来看痘痘的。','I’m only here about my acne.'),
-  clues:{menstrual:H('“45 到 70 天来一次吧，我以为这很正常。”初潮 12 岁','“Every 45 to 70 days. I thought that was normal.” Menarche at 12'),skin:H('下颌反复痤疮；上唇细毛，下颌偶有粗毛','Recurrent jawline acne; fine upper-lip hair, occasional coarse chin hairs'),body:N('BMI 19','BMI 19'),testo:H('升高','Raised'),amh:H('升高','Raised')},
-  asks:[{q:t('一年来几次月经？','How many periods a year?'),a:H('“大概六次。”','“About six.”')}],
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征。','Polycystic ovary syndrome.'),key:t('每年约 6 次月经（稀发排卵），血清睾酮升高，满足 2 条。','About six periods a year (oligo-ovulation) and raised testosterone: two criteria.'),trap:t('体型偏瘦、主诉只有痤疮。瘦型 PCOS 容易漏诊。','Slim build and a complaint of acne only. Lean PCOS is easily missed.'),outcome:t('早期确诊，开始规律随访。','Diagnosed early and now followed up regularly.')}}),
-C({id:'e3',d:0,ini:'吴',name:t('吴欣怡','Wu Xinyi'),age:28,job:t('银行职员','Bank officer'),
-  say:t('体检报告说我卵巢多囊，我很害怕。','My health check says “polycystic ovaries”. I’m frightened.'),
-  file:t('体检超声：双侧卵巢多卵泡','Screening ultrasound: multiple follicles in both ovaries'),
-  clues:{menstrual:N('周期 28–30 天，一直规律','Cycles 28–30 days, always regular'),us:H('双侧卵巢多卵泡','Multiple follicles in both ovaries')},
-  answer:'exclude',
-  card:{truth:t('健康，非 PCOS。','Healthy; not PCOS.'),key:t('仅满足 1 条（卵巢形态）。许多健康女性也有这种超声表现。','Only one criterion (ovarian morphology), which many healthy women share.'),trap:t('“多囊”二字容易让医生和病人都过度紧张。','The word “polycystic” alarms doctors and patients alike.'),outcome:t('后来正常妊娠。','She later had an uncomplicated pregnancy.')}}),
-C({id:'e4',d:0,ini:'李',name:t('李美玲','Li Meiling'),age:22,job:t('会计专业学生','Accounting student'),
-  say:t('我想减肥，想问问有什么办法。','I want to lose weight. What can I do?'),
-  clues:{menstrual:H('初潮起 2–3 个月来一次','Every 2–3 months since menarche'),skin:H('下巴、上唇粗毛，需定期拔除；痤疮','Coarse chin and lip hair, plucked regularly; acne'),family:H('母亲 2 型糖尿病','Mother has type 2 diabetes'),body:H('BMI 30，腰围 92 cm','BMI 30, waist 92 cm'),skinsign:H('多毛评分升高；颈后黑棘皮','Raised hirsutism score; acanthosis on the neck'),testo:H('升高','Raised'),glucose:H('糖耐量受损','Impaired glucose tolerance')},
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征，合并糖耐量受损。','PCOS with impaired glucose tolerance.'),key:t('初潮起月经稀发，加多毛和睾酮升高，满足 2 条，不必做超声。','Oligomenorrhoea since menarche plus hirsutism and raised testosterone: two criteria, no scan needed.'),trap:t('只当成“需要减肥”。PCOS 病人要同时评估血糖。','Treating her as someone who just needs to lose weight. PCOS needs a glucose check.'),outcome:t('生活方式干预后，血糖保持稳定。','With lifestyle treatment her glucose stayed stable.')}}),
-C({id:'e5',d:0,ini:'张',name:t('张诗涵','Zhang Shihan'),age:15,job:t('初中生（母亲陪同）','Secondary school student (with mother)'),
-  say:t('（母亲）她月经不准，还长痘，是不是多囊？','(Mother) Her periods are irregular and she has acne. Is it polycystic?'),
-  clues:{menstrual:N('初潮 13 岁半，至今约 1 年半；周期 25–40 天','Menarche at 13½, about 18 months ago; cycles 25–40 days'),skin:N('额头轻度痤疮；无多毛','Mild forehead acne; no hirsutism'),us:H('双侧卵巢多卵泡','Multiple follicles in both ovaries')},
-  answer:'exclude',
-  card:{truth:t('青春期正常的月经波动，非 PCOS。','Normal adolescent cycle variation, not PCOS.'),key:t('初潮仅 1 年半，25–40 天的周期属于正常范围。初潮后 8 年内不用超声诊断。','Only 18 months after menarche, cycles of 25–40 days are normal. Ultrasound is not used for diagnosis within 8 years of menarche.'),trap:t('做了超声，看到多卵泡就诊断。这是过度诊断。','Scanning her and diagnosing on the follicles. That is overdiagnosis.'),outcome:t('20 岁时月经已经规律。','By 20 her cycles were regular.')}}),
-C({id:'e6',d:0,ini:'何',name:t('何晓琳','He Xiaolin'),age:23,job:t('咖啡店店员','Barista'),
-  say:t('月经推迟 6 周了，最近下巴还长痘。','My period is six weeks late and my chin is breaking out.'),
-  clues:{menstrual:H('既往规律，28 天一次；本次停经 6 周','Previously regular every 28 days; now six weeks late'),symptoms:H('恶心、乳房胀痛、容易疲倦','Nausea, breast tenderness, tiredness'),preg:H('阳性','Positive')},
-  asks:[{q:t('最近有避孕吗？','Have you used contraception?'),a:H('“最近没怎么注意。”','“Not really, lately.”')}],
-  answer:'refer',
-  card:{truth:t('早孕。','Early pregnancy.'),key:t('既往规律，突然停经，有早孕症状，hCG 阳性。','Sudden amenorrhoea after regular cycles, early pregnancy symptoms, positive hCG.'),trap:t('停经先开一串激素检查。任何停经都应先做妊娠试验。','Ordering hormone panels first. Any missed period starts with a pregnancy test.'),outcome:t('及时开始产检。','She started antenatal care promptly.')}}),
-C({id:'e7',d:0,ini:'刘',name:t('刘静','Liu Jing'),age:26,job:t('行政专员','Administrator'),
-  say:t('备孕一年了，还没怀上。','We’ve been trying for a baby for a year.'),
-  clues:{menstrual:H('周期 35–90 天，从年轻时就这样','Cycles 35–90 days since her teens'),body:N('BMI 22','BMI 22'),amh:H('升高','Raised'),us:H('双侧卵巢多卵泡','Multiple follicles in both ovaries')},
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征（无高雄激素表型）。','PCOS without hyperandrogenism.'),key:t('稀发排卵加卵巢多囊样改变，满足 2 条。','Oligo-ovulation plus polycystic ovarian morphology: two criteria.'),trap:t('认为“没痘、没多毛、不胖，就不是 PCOS”。','Assuming no acne, no hirsutism and a normal weight rule it out.'),outcome:t('促排卵治疗后怀孕，孕期提早筛查了血糖。','She conceived with ovulation induction and was screened early for gestational diabetes.')}}),
-C({id:'e8',d:0,ini:'杨',name:t('杨雨','Yang Yu'),age:21,job:t('护理专业学生','Nursing student'),
-  say:t('我上唇和手臂毛比较多，是不是激素有问题？','I have quite a lot of hair on my lip and arms. Is it hormones?'),
-  clues:{menstrual:N('周期 28–30 天，一直规律','Cycles 28–30 days, always regular'),skin:N('上唇、前臂细软毛偏多','Fine soft hair on lip and forearms'),family:N('母亲和姐姐体毛也偏多，月经都正常','Mother and sister are also hairy, with normal cycles'),skinsign:N('多毛评分在正常范围','Hirsutism score within normal range'),testo:N('正常','Normal')},
-  answer:'exclude',
-  card:{truth:t('家族性体毛偏多，非 PCOS。','Familial body hair; not PCOS.'),key:t('月经规律，睾酮正常，多毛评分在正常范围。','Regular cycles, normal testosterone, normal hirsutism score.'),trap:t('把细软体毛当成高雄激素表现。','Reading fine body hair as hyperandrogenism.'),outcome:t('无需治疗，她放心了。','No treatment needed; she was reassured.')}}),
-C({id:'e9',d:0,ini:'林',name:t('林可','Lin Ke'),age:24,job:t('健身教练','Fitness coach'),
-  say:t('最近头顶头发越来越少，洗头掉一大把。','My hair is thinning on top. I lose handfuls in the shower.'),
-  clues:{menstrual:H('周期 40–90 天','Cycles 40–90 days'),skin:H('头顶头发稀疏；下颌痤疮','Thinning at the crown; jawline acne'),body:N('BMI 23','BMI 23'),testo:H('升高','Raised'),amh:H('升高','Raised')},
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征。','Polycystic ovary syndrome.'),key:t('月经稀发，加头顶型脱发和睾酮升高。','Infrequent periods, crown-pattern hair loss and raised testosterone.'),trap:t('把脱发当成压力大、熬夜。头顶型脱发也是高雄激素表现。','Blaming stress for the hair loss. Crown-pattern loss is a sign of high androgens.'),outcome:t('治疗后脱发减缓。','Her hair loss slowed with treatment.')}}),
-C({id:'e10',d:0,ini:'黎',name:t('黎欣','Li Xin'),age:22,job:t('研究生','Graduate student'),
-  say:t('月经 5 个月没来了，内衣上还有奶渍。','No period for five months, and there are milk stains on my bra.'),
-  clues:{menstrual:H('既往规律；近 5 个月未来潮','Previously regular; no period for five months'),symptoms:H('乳头溢液，偶有头痛','Nipple discharge, occasional headaches'),prl:H('明显升高','Markedly raised')},
-  answer:'refer',
-  card:{truth:t('高泌乳素血症。','Hyperprolactinaemia.'),key:t('停经加溢乳，泌乳素明显升高。','Amenorrhoea with galactorrhoea and markedly raised prolactin.'),trap:t('一看到停经就想到 PCOS。','Jumping to PCOS at the first missed period.'),outcome:t('转诊内分泌科后治疗，月经恢复。','Treated by endocrinology; her cycles returned.')}}),
-
-C({id:'e11',d:0,ini:'郭',name:t('郭敏','Guo Min'),age:42,job:t('公务员','Civil servant'),
-  say:t('下巴的毛拔了二十年了，最近同事问我是不是激素有问题。','I’ve plucked chin hair for twenty years. A colleague asked if it’s hormonal.'),
-  clues:{menstrual:H('初潮起 2–3 个月一次，到现在也是','Every 2–3 months since menarche, still now'),skin:H('下巴粗毛，需定期拔除','Coarse chin hair, plucked regularly'),body:N('BMI 24','BMI 24'),testo:H('升高','Raised')},
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征，42 岁才首次确诊。','PCOS, first diagnosed at 42.'),key:t('终身月经稀发，加多毛和睾酮升高，满足 2 条。','Lifelong oligomenorrhoea plus hirsutism and raised testosterone: two criteria.'),trap:t('以为“这个年纪月经乱是正常的”，或者“拔了这么多年早就习惯了”。PCOS 在任何年龄都可以诊断。','Assuming irregular cycles are normal at her age, or that she is used to it. PCOS can be diagnosed at any age.'),outcome:t('确诊后开始定期筛查血糖和血脂。','After diagnosis she began regular glucose and lipid screening.')}}),
-C({id:'e12',d:0,ini:'韩',name:t('韩雪','Han Xue'),age:35,job:t('摄影师','Photographer'),
-  say:t('月经一直不准，想看看到底是怎么回事。','My periods have never been regular. I want to know why.'),
-  clues:{menstrual:H('自初潮起 40–60 天一次','Every 40–60 days since menarche'),skin:H('下颌痤疮；头顶头发偏稀','Jawline acne; thinning at the crown'),body:N('BMI 21','BMI 21'),testo:H('升高','Raised'),amh:H('升高','Raised')},
-  asks:[{q:t('以前看过医生吗？','Have you seen a doctor about it?'),a:N('“没有，我一直以为自己体质就这样。”','“No. I thought that was just how my body is.”')}],
-  answer:'pcos',
-  card:{truth:t('多囊卵巢综合征。','Polycystic ovary syndrome.'),key:t('月经稀发，加痤疮、头顶脱发和睾酮升高。','Oligomenorrhoea with acne, crown hair loss and raised testosterone.'),trap:t('病人和医生都把“一直这样”当成正常。','Patient and doctor both treating “always been like this” as normal.'),outcome:t('确诊后她第一次了解了自己的长期风险。','Diagnosed, she learned about her long-term risks for the first time.')}}),
-C({id:'e13',d:0,ini:'冯',name:t('冯秀云','Feng Xiuyun'),age:47,job:t('会计','Accountant'),
-  say:t('这一年月经忽早忽晚，还老出汗。是不是多囊？','My periods have been all over the place this year, and I keep sweating. Is it polycystic?'),
-  clues:{menstrual:H('以前一直规律；近一年周期 21–60 天不等','Always regular before; cycles 21–60 days this year'),symptoms:H('潮热、盗汗','Hot flushes, night sweats'),skin:N('无痤疮、无多毛','No acne or hirsutism'),testo:N('正常','Normal')},
-  answer:'exclude',
-  card:{truth:t('围绝经期，非 PCOS。','Perimenopause, not PCOS.'),key:t('月经以前一直规律，40 多岁后才变化，伴潮热盗汗；没有高雄激素表现。','Regular cycles until her forties, now changing with flushes and sweats; no hyperandrogenism.'),trap:t('把“月经乱”直接等同于多囊。','Equating any irregular period with PCOS.'),outcome:t('对症处理后潮热减轻。','Her flushes eased with treatment.')}}),
+{id:'e1',d:0,ini:'陈',name:t('陈佳怡','Chen Jiayi'),age:25,job:t('设计师','Designer'),
+ say:t('我脸上一直长痘，想来看看。','My skin keeps breaking out.'),
+ clues:{menstrual:N('每个月都很准','Regular every month'),skin:N('额头和鼻子长痘，来月经前更多；没有粗毛','Spots on forehead and nose, worse before her period; no coarse hair'),body:N('不胖不瘦','Healthy weight')},
+ ans:'fine',
+ card:{what:t('普通的痘痘，不是 PCOS。','Ordinary acne, not PCOS.'),signs:t('月经很准，也没有粗毛。只有痘痘这一个信号。','Regular periods, no coarse hair. Acne is the only sign.'),miss:t('痘痘很常见。只有痘痘，一般不用担心 PCOS。','Acne is common. Acne on its own is rarely PCOS.'),later:t('看了皮肤科，痘痘好多了。','A dermatologist cleared up her skin.')}},
+{id:'e2',d:0,ini:'苏',name:t('苏晴','Su Qing'),age:19,job:t('大学生','University student'),
+ say:t('我就是来看痘痘的。','I’m just here about my spots.'),
+ clues:{menstrual:H('“45 到 70 天来一次吧，我以为很正常。”','“Every 45 to 70 days. I thought that was normal.”'),skin:H('下巴反复长痘；下巴偶尔长几根粗毛','Spots keep coming back on her chin; a few coarse chin hairs'),body:N('偏瘦','Slim'),testo:H('偏高','A bit high'),amh:H('偏高','A bit high')},
+ asks:[{q:t('一年来几次月经？','How many periods a year?'),a:H('“大概 6 次。”','“About six.”')}],
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('一年只来 6 次月经，下巴长痘又长粗毛，雄激素也偏高。','Only six periods a year, chin spots and coarse hair, and high male-type hormones.'),miss:t('她很瘦，又只说痘痘。瘦的人也会有 PCOS。','She is slim and only mentioned spots. Slim women get PCOS too.'),later:t('早发现，她知道以后要定期检查。','Found early, she knows to keep getting checked.')}},
+{id:'e3',d:0,ini:'吴',name:t('吴欣怡','Wu Xinyi'),age:28,job:t('银行职员','Bank officer'),
+ say:t('体检报告说我卵巢多囊，我好害怕。','My health check says “polycystic ovaries”. I’m scared.'),
+ file:t('体检 B 超：卵巢里小卵泡比较多','Health-check scan: lots of small follicles in the ovaries'),
+ clues:{menstrual:N('每个月都很准','Regular every month'),us:H('卵巢里小卵泡比较多','Lots of small follicles')},
+ ans:'fine',
+ card:{what:t('身体健康，不是 PCOS。','Healthy, not PCOS.'),signs:t('只有 B 超这一项。月经很准，也没有其他信号。','Only the scan. Her periods are regular and there are no other signs.'),miss:t('报告上“多囊”两个字很吓人，但很多健康女性的 B 超也是这样。','“Polycystic” sounds scary, but many healthy women have scans like this.'),later:t('她后来顺利怀孕了。','She later had a healthy pregnancy.')}},
+{id:'e4',d:0,ini:'李',name:t('李美玲','Li Meiling'),age:22,job:t('学生','Student'),
+ say:t('我想减肥，有什么办法吗？','I want to lose weight. Any advice?'),
+ clues:{menstrual:H('从第一次来月经起，就 2–3 个月来一次','Every 2–3 months since her very first period'),skin:H('下巴和嘴唇有粗毛，要经常拔；也长痘','Coarse hair on chin and lip she plucks often; spots too'),family:H('妈妈有糖尿病','Mum has diabetes'),body:H('偏胖，肚子比较大','Overweight, mostly round the middle'),skinsign:H('脖子后面皮肤发黑','Dark skin on the back of her neck'),testo:H('偏高','A bit high'),glucose:H('偏高，血糖开始出问题','High: her blood sugar is starting to slip')},
+ ans:'pcos',
+ card:{what:t('PCOS，血糖也开始偏高。','PCOS, and her blood sugar is creeping up.'),signs:t('月经很少、粗毛、痘痘、脖子发黑，四五个信号一起出现。','Rare periods, coarse hair, spots, a dark neck: four or five signs at once.'),miss:t('只当成“减肥就好了”。有 PCOS 也要查血糖。','Treating it as “just lose weight”. PCOS also means checking blood sugar.'),later:t('调整饮食和运动后，血糖稳住了。','With diet and exercise her blood sugar settled.')}},
+{id:'e5',d:0,ini:'张',name:t('张诗涵','Zhang Shihan'),age:15,job:t('初中生（妈妈陪同）','School student (with mum)'),
+ say:t('（妈妈）她月经不准，还长痘，是不是多囊？','(Mum) Her periods are irregular and she has spots. Is it polycystic?'),
+ clues:{menstrual:N('第一次来月经才一年半，25–40 天来一次','First period only 18 months ago; every 25–40 days'),skin:N('额头有一点痘，没有粗毛','A few forehead spots, no coarse hair'),us:H('卵巢里小卵泡比较多','Lots of small follicles')},
+ ans:'fine',
+ card:{what:t('青春期的正常现象。','Normal for her age.'),signs:t('刚来月经的头几年，不准是很常见的。','In the first few years after periods start, irregular cycles are common.'),miss:t('青春期女孩做 B 超，常常也能看到很多小卵泡，不能用来判断。','Teenage scans often show many follicles; they cannot be used to decide.'),later:t('到 20 岁，她的月经已经很准了。','By 20 her periods were regular.')}},
+{id:'e6',d:0,ini:'何',name:t('何晓琳','He Xiaolin'),age:23,job:t('咖啡店店员','Barista'),
+ say:t('月经推迟 6 周了，下巴还长痘。','My period is six weeks late and my chin is breaking out.'),
+ clues:{menstrual:H('以前每个月都准，这次晚了 6 周','Always regular; now six weeks late'),symptoms:H('想吐、胸部胀痛、很容易累','Nausea, sore breasts, tired all the time'),preg:H('阳性：怀孕了','Positive: she is pregnant')},
+ asks:[{q:t('最近有避孕吗？','Have you been using contraception?'),a:H('“最近没怎么注意。”','“Not really, lately.”')}],
+ ans:'other',
+ card:{what:t('怀孕了。','She is pregnant.'),signs:t('以前很准，突然不来，还想吐、胸胀。','Regular before, then suddenly late, with nausea and sore breasts.'),miss:t('月经不来，第一件事是验孕。','When a period is late, the first step is a pregnancy test.'),later:t('她开始了孕期检查。','She started antenatal check-ups.')}},
+{id:'e7',d:0,ini:'刘',name:t('刘静','Liu Jing'),age:26,job:t('行政','Office administrator'),
+ say:t('我们备孕一年了，还没怀上。','We’ve been trying for a baby for a year.'),
+ clues:{menstrual:H('从年轻时起就 35–90 天来一次','Every 35–90 days since her teens'),body:N('不胖不瘦','Healthy weight'),amh:H('偏高','A bit high'),us:H('卵巢里小卵泡很多','Lots of small follicles')},
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('月经很少，B 超和检查都提示卵泡多。','Rare periods, and the scan and tests show many follicles.'),miss:t('她没痘、没粗毛、也不胖，但还是 PCOS。','No spots, no coarse hair, not overweight, and still PCOS.'),later:t('治疗后，她怀孕了。','With treatment she became pregnant.')}},
+{id:'e8',d:0,ini:'杨',name:t('杨雨','Yang Yu'),age:21,job:t('护理学生','Nursing student'),
+ say:t('我嘴唇和手臂毛比较多，是不是激素有问题？','I have quite a lot of hair on my lip and arms. Is it hormones?'),
+ clues:{menstrual:N('每个月都很准','Regular every month'),skin:N('嘴唇和手臂是细细软软的汗毛','Fine, soft hair on lip and arms'),family:N('妈妈和姐姐也这样，月经都准','Mum and sister are the same, with regular periods'),testo:N('正常','Normal')},
+ ans:'fine',
+ card:{what:t('天生毛发多，不是 PCOS。','Naturally hairy, not PCOS.'),signs:t('月经准，激素正常，是细软的汗毛，不是粗毛。','Regular periods, normal hormones, fine hair rather than coarse.'),miss:t('汗毛多不等于激素有问题。','More body hair does not mean a hormone problem.'),later:t('不用治疗，她放心了。','No treatment needed; she was relieved.')}},
+{id:'e9',d:0,ini:'林',name:t('林可','Lin Ke'),age:24,job:t('健身教练','Fitness coach'),
+ say:t('头顶头发越来越少，洗头掉一大把。','My hair is thinning on top. I lose handfuls in the shower.'),
+ clues:{menstrual:H('40–90 天才来一次','Only every 40–90 days'),skin:H('头顶变稀，下巴长痘','Thinning on top, chin spots'),testo:H('偏高','A bit high'),amh:H('偏高','A bit high')},
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('月经很少，头顶掉发，还有痘痘。','Rare periods, thinning on top, and spots.'),miss:t('她以为掉发是压力大、熬夜。头顶变稀也可能是激素问题。','She blamed stress and late nights. Thinning on top can be hormonal.'),later:t('治疗后，掉发慢下来了。','With treatment her hair loss slowed.')}},
+{id:'e10',d:0,ini:'黎',name:t('黎欣','Li Xin'),age:22,job:t('研究生','Postgraduate student'),
+ say:t('月经 5 个月没来了，内衣上还有奶渍。','No period for five months, and there are milk stains on my bra.'),
+ clues:{menstrual:H('以前很准，5 个月没来','Regular before; none for five months'),symptoms:H('胸部会流出白色液体，偶尔头痛','Milky fluid from her breasts, occasional headaches'),prl:H('很高','Very high')},
+ ans:'other',
+ card:{what:t('泌乳素太高，不是 PCOS。','Too much prolactin, not PCOS.'),signs:t('没怀孕却流奶，泌乳素很高。','Breast milk without pregnancy, and very high prolactin.'),miss:t('月经不来，不一定是 PCOS。','A missing period is not always PCOS.'),later:t('看了内分泌科，月经恢复了。','After seeing a hormone specialist her periods returned.')}},
+{id:'e11',d:0,ini:'郭',name:t('郭敏','Guo Min'),age:42,job:t('公务员','Civil servant'),
+ say:t('下巴的毛拔了二十年了，同事问我是不是激素有问题。','I’ve plucked chin hair for twenty years. A colleague asked if it’s hormones.'),
+ clues:{menstrual:H('从年轻到现在，都是 2–3 个月来一次','Every 2–3 months, from her teens until now'),skin:H('下巴粗毛，要经常拔','Coarse chin hair she plucks often'),testo:H('偏高','A bit high')},
+ ans:'pcos',
+ card:{what:t('PCOS，42 岁才第一次发现。','PCOS, first found at 42.'),signs:t('一辈子月经都很少，加上粗毛。','Rare periods all her life, plus coarse hair.'),miss:t('她觉得“习惯了”。PCOS 任何年龄都可以去查。','She was “used to it”. You can get checked for PCOS at any age.'),later:t('确诊后，她开始定期查血糖和血脂。','Now she gets her blood sugar and cholesterol checked regularly.')}},
+{id:'e12',d:0,ini:'韩',name:t('韩雪','Han Xue'),age:35,job:t('摄影师','Photographer'),
+ say:t('月经一直不准，想知道到底怎么回事。','My periods have never been regular. I want to know why.'),
+ clues:{menstrual:H('从年轻时起就 40–60 天来一次','Every 40–60 days since her teens'),skin:H('下巴长痘，头顶头发偏稀','Chin spots, thinning on top'),testo:H('偏高','A bit high'),amh:H('偏高','A bit high')},
+ asks:[{q:t('以前看过医生吗？','Have you seen a doctor before?'),a:N('“没有，我以为自己体质就这样。”','“No. I thought that’s just how I am.”')}],
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('月经少、痘痘、掉发。','Rare periods, spots, thinning hair.'),miss:t('“一直这样”不代表正常。','“Always been like this” does not mean normal.'),later:t('她第一次知道了要注意什么。','For the first time she knows what to watch for.')}},
+{id:'e13',d:0,ini:'冯',name:t('冯秀云','Feng Xiuyun'),age:47,job:t('会计','Accountant'),
+ say:t('这一年月经忽早忽晚，还老出汗，是不是多囊？','My periods are all over the place this year and I keep sweating. Is it polycystic?'),
+ clues:{menstrual:H('以前一直很准，这一年 21–60 天不等','Always regular before; this year anywhere from 21 to 60 days'),symptoms:H('一阵阵发热、晚上出汗','Hot flushes and night sweats'),skin:N('没有痘痘和粗毛','No spots or coarse hair'),testo:N('正常','Normal')},
+ ans:'other', part:'fine',
+ card:{what:t('更年期前后的变化，不是 PCOS。','The change before menopause, not PCOS.'),signs:t('以前一直很准，40 多岁才开始乱，还有一阵阵发热。','Regular for decades, irregular only in her forties, with hot flushes.'),miss:t('月经乱不一定是多囊。','Irregular periods are not always PCOS.'),later:t('看了更年期门诊，发热少多了。','A menopause clinic helped her flushes.')}},
 
 /* ===== MEDIUM ===== */
-C({id:'m1',d:1,ini:'王',name:t('王秀英','Wang Xiuying'),age:34,job:t('小学教师','Primary school teacher'),
-  say:t('半年胖了 6 公斤，月经也乱了。','I’ve gained 6 kg in six months and my periods are irregular.'),
-  clues:{menstrual:H('近半年周期延长、经量增多','Past six months: longer cycles, heavier flow'),symptoms:H('怕冷、乏力、便秘、皮肤干燥','Cold intolerance, fatigue, constipation, dry skin'),skin:N('头发弥漫性稀疏；无痤疮、无多毛','Diffuse hair thinning; no acne or hirsutism'),body:H('BMI 26','BMI 26'),tsh:H('明显升高','Markedly raised')},
-  asks:[{q:t('以前月经规律吗？','Were your cycles regular before?'),a:N('“30 岁以前一直很准，最近才乱。”','“Regular until 30. It changed only recently.”')}],
-  answer:['thyroid'],
-  card:{truth:t('甲状腺功能减退。','Hypothyroidism.'),key:t('月经近期才改变；畏寒、便秘、乏力；TSH 明显升高。','Recent change in cycles; cold intolerance, constipation, fatigue; markedly raised TSH.'),trap:t('PCOS 也可有体重增加和月经紊乱，仅凭这两点会误诊。','PCOS also causes weight gain and irregular cycles; those two alone mislead.'),outcome:t('甲状腺替代治疗后月经恢复。','Cycles normalised on thyroid replacement.')}}),
-C({id:'m2',d:1,ini:'黄',name:t('黄思琪','Huang Siqi'),age:32,job:t('程序员','Software engineer'),
-  say:t('月经好几个月没来了，验孕是阴性。','No period for months. Home pregnancy tests are negative.'),
-  clues:{menstrual:H('既往规律；近 6 个月仅来潮 1 次','Previously regular; one period in six months'),symptoms:H('偶有头痛','Occasional headaches'),skin:N('下颌偶有痤疮；无多毛','Occasional chin acne; no hirsutism'),prl:H('升高','Raised')},
-  asks:[{q:t('乳房有无异常？','Any breast changes?'),a:H('“挤压时有白色液体。”','“Milky fluid when I press.”')}],
-  answer:['prolactin'],
-  card:{truth:t('高泌乳素血症，需进一步查因。','Hyperprolactinaemia; the cause needs investigation.'),key:t('近期停经；溢乳；血清泌乳素升高。','Recent amenorrhoea; galactorrhoea; raised prolactin.'),trap:t('停经加痤疮貌似 PCOS。不追问乳房情况，就会漏掉溢乳。','Amenorrhoea plus acne mimics PCOS. Without asking, galactorrhoea is missed.'),outcome:t('转诊后明确病因并治疗，月经恢复。','Cause found and treated after referral; cycles returned.')}}),
-C({id:'m3',d:1,ini:'赵',name:t('赵雨桐','Zhao Yutong'),age:31,job:t('护士','Nurse'),
-  say:t('想停避孕药准备怀孕，来做个检查。','I want to stop the pill and try for a baby. Can you check me first?'),
-  clues:{menstrual:N('“每个月都很准。”','“Like clockwork every month.”'),meds:H('口服短效避孕药 6 年','Combined pill for six years'),skin:N('目前无痤疮、无多毛','No acne or hirsutism now'),testo:N('正常（服药期间）','Normal (on the pill)'),us:N('未见明显异常（服药期间）','No significant findings (on the pill)')},
-  asks:[{q:t('当初为什么开始吃避孕药？','Why did you start the pill?'),a:H('“25 岁时痘很多，月经两三个月才来一次，医生让我吃的。”','“At 25 I had bad acne and a period every two or three months. A doctor put me on it.”')}],
-  answer:['pcos'],
-  card:{truth:t('PCOS 被避孕药掩盖。建议停药约 3 个月后复查确认。','PCOS masked by the pill. Recheck about three months after stopping.'),key:t('服药前的病史：月经稀发加痤疮。避孕药会让月经规律、雄激素下降，服药期间的检查不可靠。','Her history before the pill: infrequent periods and acne. The pill regularises cycles and lowers androgens, so tests on it are unreliable.'),trap:t('花了时间做睾酮和超声，结果正常就排除。真正关键的是 1 分钟的追问。','Ordering testosterone and a scan, then ruling it out because they are normal. The one-minute question was the key.'),outcome:t('停药后确认 PCOS，备孕前提早做了血糖评估。','PCOS confirmed after stopping; her glucose was checked before conception.')}}),
-C({id:'m4',d:1,ini:'周',name:t('周嘉欣','Zhou Jiaxin'),age:33,job:t('马拉松爱好者、工程师','Engineer and marathon runner'),
-  say:t('月经 5 个月没来了。','My period hasn’t come for five months.'),
-  clues:{menstrual:H('既往规律；近 5 个月未来潮','Previously regular; none for five months'),symptoms:H('备赛一年，每周跑约 70 公里；一年体重下降 5 公斤','A year of race training, about 70 km a week; lost 5 kg this year'),body:N('BMI 18','BMI 18'),amh:H('偏高','High'),us:H('卵巢多卵泡','Multiple ovarian follicles')},
-  answer:['hypothalamic'],
-  card:{truth:t('功能性下丘脑性闭经。','Functional hypothalamic amenorrhoea.'),key:t('月经近期才停；训练量大、体重下降；无高雄激素表现。','Recent amenorrhoea; heavy training and weight loss; no hyperandrogenism.'),trap:t('这类病人的超声和 AMH 也可能像 PCOS，只看检查会误诊。','Scans and AMH can look like PCOS in these women; tests alone mislead.'),outcome:t('运动医学科调整训练和营养后，月经恢复，骨骼健康得到保护。','After sports-medicine changes to training and diet, cycles returned and bone health was protected.')}}),
-C({id:'m5',d:1,ini:'马',name:t('马慧敏','Ma Huimin'),age:36,job:t('餐厅老板','Restaurant owner'),
-  say:t('这一年胖了很多，月经乱了，脸上也长痘。','I’ve put on a lot of weight this year, my periods are irregular, and I have acne.'),
-  clues:{menstrual:H('既往规律；近一年变乱','Previously regular; irregular for a year'),symptoms:H('上楼梯腿没力气；容易淤青','Weak thighs on stairs; bruises easily'),skin:H('痤疮；轻度多毛','Acne; mild hirsutism'),body:H('体重集中在面部和腹部，四肢偏细','Weight on face and trunk; thin arms and legs'),skinsign:H('满月脸；腹部紫色宽条纹','Moon face; wide purple striae on the abdomen'),bp:H('升高','Raised'),testo:H('轻度升高','Mildly raised'),glucose:H('偏高','Raised'),cortisol:H('异常','Abnormal')},
-  answer:['cushing'], ok:['metabolic'],
-  card:{truth:t('库欣综合征，需转内分泌科。','Cushing’s syndrome; refer to endocrinology.'),key:t('近一年起病；紫纹、近端肌无力、容易淤青，这些不是 PCOS 的表现。','Onset within a year; purple striae, proximal weakness and easy bruising are not features of PCOS.'),trap:t('体重增加、月经乱、多毛、血糖高，几乎全部“像 PCOS”。','Weight gain, irregular cycles, hirsutism and high glucose all look like PCOS.'),outcome:t('找到病因并治疗后，体重和血压逐渐恢复。','Once the cause was treated, her weight and blood pressure recovered.')}}),
-C({id:'m6',d:1,ini:'许',name:t('许婉婷','Xu Wanting'),age:32,job:t('平面设计师','Graphic designer'),
-  say:t('最近特别累，体重又涨了，月经更乱了。','I’m exhausted, gaining weight again, and my periods are worse.'),
-  clues:{menstrual:H('自初潮起 40–90 天一次','Every 40–90 days since menarche'),skin:H('下颌粗毛，高中起就有','Coarse chin hair since high school'),testo:H('升高','Raised'),tsh:H('升高','Raised')},
-  asks:[{q:t('最近有什么变化？','What has changed recently?'),a:H('“这半年特别累、怕冷、便秘，胖了 4 公斤。”','“Six months of fatigue, feeling cold, constipation, 4 kg gained.”')}],
-  answer:['pcos','thyroid'],
-  card:{truth:t('PCOS 合并甲状腺功能减退。','PCOS with hypothyroidism.'),key:t('青春期起的月经稀发和多毛是 PCOS；近半年的新症状是甲减。','Lifelong oligomenorrhoea and hirsutism are PCOS; the new six-month symptoms are hypothyroidism.'),trap:t('找到一个诊断就停止思考。','Stopping at the first diagnosis.'),outcome:t('两者同时治疗，精力和月经均改善。','Both treated; energy and cycles improved.')}}),
-C({id:'m7',d:1,ini:'江',name:t('江雪','Jiang Xue'),age:34,job:t('客服主管','Customer service lead'),
-  say:t('半年来月经越来越少，人也没精神。','My periods are getting lighter and further apart, and I have no energy.'),
-  clues:{menstrual:H('既往规律；近半年周期延长','Previously regular; longer cycles for six months'),symptoms:H('乏力、怕冷、皮肤干燥','Fatigue, cold intolerance, dry skin'),tsh:H('明显升高','Markedly raised'),prl:H('轻度升高','Mildly raised')},
-  answer:['thyroid'],
-  card:{truth:t('甲状腺功能减退，继发泌乳素轻度升高。','Hypothyroidism with a secondary mild rise in prolactin.'),key:t('甲减可使泌乳素轻度升高。先治疗甲状腺，再复查泌乳素。','Hypothyroidism can raise prolactin slightly. Treat the thyroid, then recheck prolactin.'),trap:t('看到两项异常，就诊断两种疾病。','Two abnormal results read as two diseases.'),outcome:t('甲状腺功能恢复后，泌乳素和月经均恢复正常。','Prolactin and cycles normalised once the thyroid was treated.')}}),
-C({id:'m8',d:1,ini:'郑',name:t('郑雅婷','Zheng Yating'),age:29,job:t('研究员','Researcher'),
-  say:t('下巴的毛越来越多。','My chin hair keeps getting worse.'),
-  clues:{menstrual:H('自初潮起不规律','Irregular since menarche'),skin:H('下巴、上唇粗毛；痤疮','Coarse chin and lip hair; acne'),family:H('“我姐姐也这样，她被诊断过肾上腺的病。”','“My sister is the same. She was diagnosed with an adrenal condition.”'),testo:H('升高','Raised'),ohp:H('升高','Raised')},
-  asks:[{q:t('腋毛、阴毛几岁开始长？','When did underarm and pubic hair start?'),a:H('“很早，大概 8 岁。”','“Very early, about eight.”')}],
-  answer:['cah'],
-  card:{truth:t('非经典型先天性肾上腺皮质增生。','Non-classic congenital adrenal hyperplasia.'),key:t('家族史，阴毛腋毛过早出现，17-OHP 升高。','Family history, early pubic hair, raised 17-OHP.'),trap:t('月经乱加多毛加睾酮高，几乎就是标准 PCOS。只有家族史和追问提示要查 17-OHP。','Irregular cycles, hirsutism and high testosterone look exactly like PCOS. Only the family history and the follow-up question prompt a 17-OHP test.'),outcome:t('对症治疗；备孕时也接受了遗传咨询。','Treated, with genetic counselling before pregnancy.')}}),
-C({id:'m9',d:1,ini:'陈',name:t('陈丽','Chen Li'),age:38,job:t('销售经理','Sales manager'),
-  say:t('以前医生都说我太胖了，减了肥月经就会好。','Doctors always said I’m too heavy and my periods would sort out if I lost weight.'),
-  clues:{menstrual:H('从年轻时就 2–3 个月一次','Every 2–3 months since her teens'),skin:H('下巴粗毛','Coarse chin hair'),body:H('BMI 32，腰围 98 cm','BMI 32, waist 98 cm'),skinsign:H('黑棘皮','Acanthosis nigricans'),bp:H('升高','Raised'),testo:H('升高','Raised'),glucose:H('糖耐量受损','Impaired glucose tolerance')},
-  answer:['pcos','metabolic'],
-  card:{truth:t('PCOS，合并高血压和糖耐量受损。','PCOS with hypertension and impaired glucose tolerance.'),key:t('年轻时起就月经稀发、多毛、睾酮升高。代谢异常需要同时处理。','Oligomenorrhoea and hirsutism since her teens with raised testosterone. Her metabolic disease needs treatment too.'),trap:t('所有问题都归因于“胖”，PCOS 一直没被诊断。','Blaming everything on weight, so PCOS was never diagnosed.'),outcome:t('确诊后系统治疗，血糖和血压得到控制。','With a diagnosis and treatment, her glucose and blood pressure came under control.')}}),
-C({id:'m10',d:1,ini:'宋',name:t('宋佳','Song Jia'),age:41,job:t('会计','Accountant'),
-  say:t('月经两个月没来，是不是要更年期了？','My period is two months late. Is this the menopause?'),
-  clues:{menstrual:H('既往规律；本次停经 9 周','Previously regular; nine weeks without a period'),symptoms:H('乏力、恶心、乳房胀痛','Fatigue, nausea, breast tenderness'),preg:H('阳性','Positive')},
-  asks:[{q:t('最近有避孕吗？','Have you used contraception?'),a:H('“觉得这个年纪不容易怀了，没太注意。”','“I thought I couldn’t get pregnant at my age, so not really.”')}],
-  answer:['pregnancy'],
-  card:{truth:t('妊娠。','Pregnancy.'),key:t('既往规律，突然停经，早孕症状，hCG 阳性。','Sudden amenorrhoea after regular cycles, early pregnancy symptoms, positive hCG.'),trap:t('40 多岁停经就想到更年期。任何年龄停经都先做妊娠试验。','Assuming the menopause at 41. A missed period at any age starts with a pregnancy test.'),outcome:t('及时开始高龄孕妇产检。','She began antenatal care for an older mother promptly.')}}),
-
-C({id:'m11',d:1,ini:'范',name:t('范琳','Fan Lin'),age:23,job:t('程序员','Software developer'),
-  say:t('之前医生说我压力大、熬夜，月经才乱。','A doctor said my periods are irregular because of stress and late nights.'),
-  clues:{menstrual:H('自初潮起 40–90 天一次','Every 40–90 days since menarche'),skin:H('下颌痤疮；上唇粗毛','Jawline acne; coarse upper-lip hair'),symptoms:N('睡眠不足，没有其他不适','Short of sleep; nothing else'),testo:H('升高','Raised'),amh:H('升高','Raised')},
-  asks:[{q:t('工作以前月经准吗？','Were your periods regular before you started work?'),a:H('“从来没准过，中学就这样。”','“Never. It’s been like this since school.”')}],
-  answer:['pcos'],
-  card:{truth:t('多囊卵巢综合征。','Polycystic ovary syndrome.'),key:t('月经从初潮起就不规律，早在“压力大”之前；加多毛和睾酮升高。','Irregular since menarche, long before the “stress”; plus hirsutism and raised testosterone.'),trap:t('把一切归因于压力和熬夜，PCOS 被掩盖。','Blaming stress and late nights, which hides the PCOS.'),outcome:t('确诊后开始系统管理。','Diagnosed and now properly managed.')}}),
-C({id:'m12',d:1,ini:'刘',name:t('刘霞','Liu Xia'),age:46,job:t('超市收银员','Supermarket cashier'),
-  say:t('月经越来越多，人也没力气，应该是更年期吧？','My periods are getting heavier and I’m drained. It must be the menopause?'),
-  clues:{menstrual:H('近半年经量明显增多、周期延长','Six months of heavier flow and longer cycles'),symptoms:H('怕冷、便秘、乏力；没有潮热','Cold intolerance, constipation, fatigue; no hot flushes'),skin:N('头发干枯，眉毛外侧变稀','Dry hair, thinning outer eyebrows'),body:H('BMI 26','BMI 26'),tsh:H('明显升高','Markedly raised')},
-  answer:['thyroid'], ok:['peri'],
-  card:{truth:t('甲状腺功能减退。','Hypothyroidism.'),key:t('怕冷、便秘、眉毛外侧变稀、没有潮热；TSH 明显升高。','Cold intolerance, constipation, thinning outer eyebrows and no flushes; markedly raised TSH.'),trap:t('46 岁月经变化，就默认是更年期。','Assuming any change at 46 is the menopause.'),outcome:t('甲状腺治疗后，经量和精力都恢复了。','Thyroid treatment restored her energy and normal flow.')}}),
-C({id:'m13',d:1,ini:'唐',name:t('唐语','Tang Yu'),age:16,job:t('游泳队队员（教练陪同）','Swim squad member (with coach)'),
-  say:t('（教练）她半年没来月经了。','(Coach) She hasn’t had a period for six months.'),
-  clues:{menstrual:H('初潮 12 岁，之前规律；近 6 个月未来潮','Menarche at 12, regular until now; none for six months'),symptoms:H('每天训练约 4 小时；半年体重下降 4 公斤','Training about four hours a day; lost 4 kg in six months'),body:N('BMI 18','BMI 18'),testo:N('正常','Normal'),us:H('卵巢多卵泡','Multiple ovarian follicles')},
-  answer:['hypothalamic'],
-  card:{truth:t('功能性下丘脑性闭经。','Functional hypothalamic amenorrhoea.'),key:t('月经近期才停，训练量大、体重下降，没有高雄激素表现。','Recent amenorrhoea, heavy training and weight loss, no hyperandrogenism.'),trap:t('超声看到多卵泡就诊断 PCOS。她初潮才 4 年，超声不能用来诊断。','Diagnosing PCOS from follicles on a scan. Four years after menarche, ultrasound cannot be used.'),outcome:t('运动医学团队调整训练和营养后，月经恢复。','With her sports-medicine team adjusting training and nutrition, her periods returned.')}}),
+{id:'m1',d:1,ini:'王',name:t('王秀英','Wang Xiuying'),age:34,job:t('小学老师','Primary school teacher'),
+ say:t('半年胖了 6 公斤，月经也乱了。','I’ve put on 6 kg in six months and my periods are irregular.'),
+ clues:{menstrual:H('这半年越来越晚，量也变多','Later and heavier for six months'),symptoms:H('怕冷、很累、便秘、皮肤干','Feels cold, tired, constipated; dry skin'),skin:N('头发整体变少，没有痘和粗毛','Hair thinning all over; no spots or coarse hair'),tsh:H('甲状腺功能偏低','Underactive thyroid')},
+ asks:[{q:t('以前月经准吗？','Were your periods regular before?'),a:N('“30 岁前一直很准，最近才乱。”','“Always, until 30. It changed recently.”')}],
+ ans:'other',
+ card:{what:t('甲状腺功能偏低，不是 PCOS。','An underactive thyroid, not PCOS.'),signs:t('月经最近才乱，还怕冷、便秘。','Her periods changed only recently, and she feels cold and constipated.'),miss:t('PCOS 也会让人变胖、月经乱，只看这两点会搞错。','PCOS also causes weight gain and irregular periods; those two alone mislead.'),later:t('治好甲状腺后，月经正常了。','Once her thyroid was treated, her periods settled.')}},
+{id:'m2',d:1,ini:'黄',name:t('黄思琪','Huang Siqi'),age:32,job:t('程序员','Software engineer'),
+ say:t('月经好几个月没来，验孕是阴性。','No period for months, and pregnancy tests are negative.'),
+ clues:{menstrual:H('以前准，半年只来了 1 次','Regular before; only one period in six months'),symptoms:H('偶尔头痛','Occasional headaches'),skin:N('偶尔长痘，没有粗毛','Occasional spots, no coarse hair'),prl:H('偏高','High')},
+ asks:[{q:t('胸部有没有异常？','Any changes in your breasts?'),a:H('“挤的时候会有白色液体。”','“White fluid comes out if I press.”')}],
+ ans:'other',
+ card:{what:t('泌乳素太高。','Too much prolactin.'),signs:t('没怀孕却流奶，泌乳素偏高。','Milky fluid without pregnancy, and high prolactin.'),miss:t('不问胸部的情况，就发现不了。','Without asking about her breasts, you would never know.'),later:t('治疗后，月经回来了。','With treatment her periods came back.')}},
+{id:'m3',d:1,ini:'赵',name:t('赵雨桐','Zhao Yutong'),age:31,job:t('护士','Nurse'),
+ say:t('想停避孕药准备怀孕，先来检查一下。','I want to stop the pill and try for a baby. Can you check me first?'),
+ clues:{menstrual:N('“每个月都很准。”','“Regular as clockwork.”'),meds:H('吃避孕药 6 年了','On the pill for six years'),skin:N('现在没有痘和粗毛','No spots or coarse hair now'),testo:N('正常（吃药期间）','Normal (while on the pill)'),us:N('正常（吃药期间）','Normal (while on the pill)')},
+ asks:[{q:t('当初为什么吃避孕药？','Why did you start the pill?'),a:H('“25 岁时痘很多，月经两三个月才来一次。”','“At 25 I had bad spots and a period every two or three months.”')}],
+ ans:'pcos',
+ card:{what:t('PCOS，被避孕药“藏”起来了。','PCOS, hidden by the pill.'),signs:t('吃药以前：月经很少，痘很多。','Before the pill: rare periods and bad spots.'),miss:t('避孕药会让月经变准、痘变少，检查也可能正常。要问吃药以前的情况。','The pill makes periods regular and clears skin, and tests can look normal. Ask about life before the pill.'),later:t('停药后确诊，她提前做好了备孕准备。','Confirmed after stopping, she prepared well for pregnancy.')}},
+{id:'m4',d:1,ini:'周',name:t('周嘉欣','Zhou Jiaxin'),age:33,job:t('工程师、马拉松爱好者','Engineer and marathon runner'),
+ say:t('月经 5 个月没来了。','No period for five months.'),
+ clues:{menstrual:H('以前准，5 个月没来','Regular before; none for five months'),symptoms:H('一年都在备赛，每周跑 70 公里，瘦了 5 公斤','A year of race training, 70 km a week, lost 5 kg'),body:N('偏瘦','Slim'),amh:H('偏高','A bit high'),us:H('卵泡比较多','Quite a few follicles')},
+ ans:'other',
+ card:{what:t('运动太多、吃得不够，身体暂停了月经。','Too much training and too little food; her body paused her periods.'),signs:t('最近才停，运动量大，体重掉了。','A recent stop, heavy training, weight loss.'),miss:t('她的 B 超看起来像 PCOS，但真正原因是运动和营养。','Her scan looks like PCOS, but the real cause is training and nutrition.'),later:t('调整训练和饮食后，月经恢复了。','After changing her training and diet, her periods returned.')}},
+{id:'m5',d:1,ini:'马',name:t('马慧敏','Ma Huimin'),age:36,job:t('餐厅老板','Restaurant owner'),
+ say:t('这一年胖了很多，月经乱了，脸上也长痘。','I’ve put on a lot of weight this year, my periods are irregular, and I have spots.'),
+ clues:{menstrual:H('以前准，这一年变乱','Regular before; irregular this year'),symptoms:H('上楼梯腿没力气，很容易淤青','Weak legs on stairs, bruises easily'),skin:H('有痘，有一点粗毛','Spots, a little coarse hair'),body:H('胖在脸和肚子，手脚反而细','Weight on her face and belly; thin arms and legs'),skinsign:H('脸变圆，肚子上有紫红色的宽条纹','Rounder face, wide purple stretch marks on the belly'),bp:H('偏高','High'),glucose:H('偏高','High'),cortisol:H('不正常','Abnormal')},
+ ans:'other',
+ card:{what:t('库欣综合征（身体里压力激素太多）。','Cushing’s syndrome (too much stress hormone).'),signs:t('紫红色条纹、腿没力、容易淤青，PCOS 一般不会这样。','Purple stretch marks, weak legs and easy bruising are not typical of PCOS.'),miss:t('变胖、月经乱、长痘都很像 PCOS。','Weight gain, irregular periods and spots all look like PCOS.'),later:t('找到原因治疗后，体重和血压慢慢降下来了。','Once the cause was treated, her weight and blood pressure came down.')}},
+{id:'m6',d:1,ini:'许',name:t('许婉婷','Xu Wanting'),age:32,job:t('平面设计师','Graphic designer'),
+ say:t('最近特别累，体重又涨了，月经更乱了。','I’m exhausted, gaining weight again, and my periods are worse.'),
+ clues:{menstrual:H('从年轻时起就 40–90 天来一次','Every 40–90 days since her teens'),skin:H('下巴粗毛，高中就有','Coarse chin hair since high school'),testo:H('偏高','A bit high'),tsh:H('甲状腺功能偏低','Underactive thyroid')},
+ asks:[{q:t('最近有什么变化？','What’s changed recently?'),a:H('“这半年特别累、怕冷、便秘，胖了 4 公斤。”','“Six months of tiredness, feeling cold, constipation, 4 kg up.”')}],
+ ans:'pcos', part:'other',
+ card:{what:t('PCOS，同时甲状腺也出了问题。','PCOS, plus a thyroid problem.'),signs:t('从年轻就有的月经少和粗毛是 PCOS；最近的怕冷、便秘是甲状腺。','Lifelong rare periods and coarse hair are PCOS; the recent cold and constipation are her thyroid.'),miss:t('找到一个原因就停下来。','Stopping at the first answer.'),later:t('两个问题一起治，她精神好多了。','With both treated, she has far more energy.')}},
+{id:'m7',d:1,ini:'江',name:t('江雪','Jiang Xue'),age:34,job:t('客服主管','Customer service lead'),
+ say:t('半年来月经越来越少，人也没精神。','My periods have been getting rarer and I have no energy.'),
+ clues:{menstrual:H('以前准，这半年越来越晚','Regular before; later and later for six months'),symptoms:H('很累、怕冷、皮肤干','Tired, cold, dry skin'),tsh:H('甲状腺功能偏低','Underactive thyroid'),prl:H('有一点高','Slightly high')},
+ ans:'other',
+ card:{what:t('甲状腺功能偏低。','An underactive thyroid.'),signs:t('怕冷、很累，甲状腺有问题。泌乳素有一点高，也是甲状腺带出来的。','Cold and tired with a thyroid problem. The slightly high prolactin comes from the thyroid too.'),miss:t('看到两项不正常，就以为有两种病。','Two odd results do not always mean two diseases.'),later:t('治好甲状腺后，全部恢复正常。','Treating her thyroid put everything right.')}},
+{id:'m8',d:1,ini:'郑',name:t('郑雅婷','Zheng Yating'),age:29,job:t('研究员','Researcher'),
+ say:t('下巴的毛越来越多。','My chin hair keeps getting worse.'),
+ clues:{menstrual:H('从年轻时起就不准','Irregular since her teens'),skin:H('下巴和嘴唇粗毛，也有痘','Coarse hair on chin and lip; spots'),family:H('“我姐姐也这样，她查出来是肾上腺的问题。”','“My sister is the same. She was told it’s her adrenal glands.”'),testo:H('偏高','A bit high'),ohp:H('偏高','High')},
+ asks:[{q:t('腋毛几岁开始长？','When did underarm hair start?'),a:H('“很早，大概 8 岁。”','“Very early, about eight.”')}],
+ ans:'other', part:'pcos',
+ card:{what:t('一种遗传的肾上腺问题，不是 PCOS。','An inherited adrenal condition, not PCOS.'),signs:t('姐姐有同样的病，8 岁就长腋毛。','Her sister has it, and her body hair started at eight.'),miss:t('表现几乎和 PCOS 一样，只有家族史能提醒你。','It looks almost exactly like PCOS; only the family history gives it away.'),later:t('对症治疗，她备孕前也做了遗传咨询。','She was treated and had genetic advice before pregnancy.')}},
+{id:'m9',d:1,ini:'陈',name:t('陈丽','Chen Li'),age:38,job:t('销售经理','Sales manager'),
+ say:t('以前医生都说我太胖了，减肥月经就会好。','Doctors always said I’m too heavy and my periods would sort out if I lost weight.'),
+ clues:{menstrual:H('从年轻时起就 2–3 个月来一次','Every 2–3 months since her teens'),skin:H('下巴粗毛','Coarse chin hair'),body:H('偏胖','Overweight'),skinsign:H('脖子后面皮肤发黑','Dark skin on the back of her neck'),bp:H('偏高','High'),testo:H('偏高','A bit high'),glucose:H('偏高','High')},
+ ans:'pcos',
+ card:{what:t('PCOS，血压血糖也偏高。','PCOS, with high blood pressure and sugar.'),signs:t('月经少、粗毛、脖子发黑。','Rare periods, coarse hair, a dark neck.'),miss:t('一切都怪“太胖”，PCOS 一直没人查。','Everything was blamed on weight, so nobody checked for PCOS.'),later:t('确诊后系统治疗，血压血糖都控制住了。','With a diagnosis and treatment, both came under control.')}},
+{id:'m10',d:1,ini:'宋',name:t('宋佳','Song Jia'),age:41,job:t('会计','Accountant'),
+ say:t('月经两个月没来，是不是要更年期了？','My period is two months late. Is this the menopause starting?'),
+ clues:{menstrual:H('以前准，这次 9 周没来','Regular before; nine weeks late'),symptoms:H('很累、想吐、胸胀','Tired, nauseous, sore breasts'),preg:H('阳性：怀孕了','Positive: she is pregnant')},
+ asks:[{q:t('最近有避孕吗？','Have you been using contraception?'),a:H('“觉得这个年纪不容易怀，没太注意。”','“I thought I couldn’t at my age, so not really.”')}],
+ ans:'other',
+ card:{what:t('怀孕了。','She is pregnant.'),signs:t('以前很准，突然停，还想吐。','Regular before, suddenly late, with nausea.'),miss:t('40 多岁月经不来，也要先验孕。','A late period in your forties still means a pregnancy test first.'),later:t('她开始了孕期检查。','She started antenatal check-ups.')}},
+{id:'m11',d:1,ini:'范',name:t('范琳','Fan Lin'),age:23,job:t('程序员','Programmer'),
+ say:t('之前医生说我压力大、熬夜，月经才乱。','A doctor said my periods are irregular because of stress and late nights.'),
+ clues:{menstrual:H('从第一次来月经就 40–90 天一次','Every 40–90 days since her very first period'),skin:H('下巴长痘，嘴唇有粗毛','Chin spots, coarse hair on her lip'),symptoms:N('睡得少，其他还好','Not sleeping enough; otherwise fine'),testo:H('偏高','A bit high'),amh:H('偏高','A bit high')},
+ asks:[{q:t('工作以前月经准吗？','Were your periods regular before this job?'),a:H('“从来没准过，中学就这样。”','“Never. It’s been like this since school.”')}],
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('中学就开始月经少，比“压力大”早得多。','Rare periods since school, long before any “stress”.'),miss:t('把一切都怪压力和熬夜。','Blaming everything on stress and late nights.'),later:t('确诊后，她终于知道原因了。','Diagnosed, she finally knows why.')}},
+{id:'m12',d:1,ini:'刘',name:t('刘霞','Liu Xia'),age:46,job:t('超市收银员','Supermarket cashier'),
+ say:t('月经越来越多，人也没力气，应该是更年期吧？','My periods are heavier and I’m drained. It must be the menopause?'),
+ clues:{menstrual:H('这半年量变多，越来越晚','Heavier and later for six months'),symptoms:H('怕冷、便秘、很累；没有一阵阵发热','Cold, constipated, tired; no hot flushes'),skin:N('头发干，眉毛尾巴变稀','Dry hair, thinning outer eyebrows'),tsh:H('甲状腺功能偏低','Underactive thyroid')},
+ ans:'other',
+ card:{what:t('甲状腺功能偏低。','An underactive thyroid.'),signs:t('怕冷、便秘、眉毛变稀，但没有更年期的发热。','Cold, constipated, thinning eyebrows, but no menopausal flushes.'),miss:t('46 岁月经变化，就以为是更年期。','Assuming any change at 46 is the menopause.'),later:t('治好甲状腺后，精神和月经都恢复了。','Thyroid treatment restored her energy and periods.')}},
+{id:'m13',d:1,ini:'唐',name:t('唐语','Tang Yu'),age:16,job:t('游泳队队员（教练陪同）','Swim squad member (with coach)'),
+ say:t('（教练）她半年没来月经了。','(Coach) She hasn’t had a period for six months.'),
+ clues:{menstrual:H('以前准，半年没来','Regular before; none for six months'),symptoms:H('每天训练 4 小时，半年瘦了 4 公斤','Four hours of training a day, lost 4 kg in six months'),body:N('偏瘦','Slim'),us:H('卵泡比较多','Quite a few follicles')},
+ ans:'other',
+ card:{what:t('训练太多、吃得不够，月经暂停了。','Too much training and too little food; her periods paused.'),signs:t('训练量大，体重下降。','Heavy training and weight loss.'),miss:t('青春期女孩 B 超卵泡多很常见，不能拿来判断 PCOS。','Many follicles on a teenager’s scan is common and cannot show PCOS.'),later:t('调整训练和营养后，月经回来了。','With changes to training and food, her periods returned.')}},
 
 /* ===== HARD ===== */
-C({id:'h1',d:2,red:1,ini:'冯',name:t('冯敏','Feng Min'),age:46,job:t('律师','Lawyer'),
-  say:t('最近毛长得特别快，是不是 PCOS 加重了？','My hair growth has shot up. Is my PCOS getting worse?'),
-  file:t('15 年前确诊 PCOS，此后未规律随访','Diagnosed with PCOS 15 years ago; no regular follow-up since'),
-  clues:{skin:H('多毛快速加重；头顶脱发加重','Rapidly worsening hirsutism; more crown hair loss'),skinsign:H('多毛评分明显升高；其他男性化体征','Markedly raised hirsutism score; other signs of virilisation'),testo:H('明显升高，远高于既往水平','Very high, far above her previous level'),menstrual:N('近两年不规律，量少','Irregular and light for two years')},
-  asks:[{q:t('变化有多快？','How fast has it changed?'),a:H('“这四个月突然多了很多，声音也有点哑。”','“Suddenly, over four months. My voice has gone husky too.”')}],
-  answer:['pcos','tumor'],
-  card:{truth:t('既往 PCOS，新发分泌雄激素的肿瘤，需紧急转诊。','Known PCOS with a new androgen-secreting tumour; urgent referral.'),key:t('与她自己的过去相比变化太快；声音变粗；睾酮大幅升高。','Far faster than her own baseline; voice deepening; a large rise in testosterone.'),trap:t('“她本来就有 PCOS”，把新症状当成老问题。这是锚定偏差。','“She already has PCOS”: reading new symptoms as old ones. That is anchoring bias.'),outcome:t('及时转诊，肿瘤切除后恢复。','Referred in time; she recovered after surgery.')}}),
-C({id:'h2',d:2,ini:'宋',name:t('宋梅','Song Mei'),age:49,job:t('退休教师','Retired teacher'),
-  say:t('潮热、特别累、胖了，记性也差了。','Hot flushes, exhaustion, weight gain, poor memory.'),
-  file:t('既往记录：无','Past records: none'),
-  clues:{menstrual:H('近一年不规律，最近停经 3 个月','Irregular for a year; none for three months'),symptoms:H('潮热；同时怕冷、便秘、乏力','Hot flushes; also cold intolerance, constipation, fatigue'),family:N('“记不清了。”','“I don’t really know.”'),body:H('BMI 28','BMI 28'),tsh:H('明显升高','Markedly raised'),glucose:H('空腹血糖受损','Impaired fasting glucose')},
-  answer:['peri','thyroid','metabolic'],
-  card:{truth:t('围绝经期，合并甲状腺功能减退和糖尿病前期。','Perimenopause with hypothyroidism and prediabetes.'),key:t('潮热符合围绝经期，但怕冷、便秘不是更年期表现；TSH 和血糖都异常。','Flushes fit perimenopause, but cold intolerance and constipation do not; TSH and glucose are both abnormal.'),trap:t('全部归为“更年期”。','Calling it all “the menopause”.'),outcome:t('三个问题分别处理后，精力明显恢复。','With all three treated, her energy came back.')}}),
-C({id:'h3',d:2,red:1,ini:'林',name:t('林芳','Lin Fang'),age:44,job:t('健身房经理','Gym manager'),
-  say:t('月经 3 个月没来了，我习惯了。能不能开点药让它来？','No period for three months. I’m used to it. Can you give me something to bring it on?'),
-  file:t('12 年前确诊 PCOS','Diagnosed with PCOS 12 years ago'),
-  clues:{menstrual:H('一直不规律；本次停经 3 个月','Always irregular; three months since the last'),symptoms:H('最近恶心，乳房胀痛','Recent nausea and breast tenderness'),preg:H('阳性','Positive')},
-  asks:[{q:t('最近有避孕吗？','Have you used contraception?'),a:H('“没有，我以为自己很难怀孕。”','“No. I thought I could hardly get pregnant.”')}],
-  answer:['pcos','pregnancy'],
-  card:{truth:t('既往 PCOS，此次为妊娠。','Known PCOS; this time she is pregnant.'),key:t('hCG 阳性。PCOS 病人同样可以自然怀孕。','A positive hCG. Women with PCOS can conceive naturally.'),trap:t('没做妊娠试验就开药催经。病人说“我习惯了”，医生也跟着放松。','Prescribing to bring on a period without a pregnancy test, relaxing because she is “used to it”.'),outcome:t('及时确认妊娠，孕期密切监测血糖。','Pregnancy confirmed in time; her glucose was closely monitored.')}}),
-C({id:'h4',d:2,ini:'何',name:t('何丽','He Li'),age:47,job:t('保险经纪','Insurance broker'),
-  say:t('心慌、出汗、睡不着，人也瘦了。是更年期吧？','Palpitations, sweating, can’t sleep, losing weight. It’s the menopause, right?'),
-  file:t('既往记录：无','Past records: none'),
-  clues:{menstrual:N('仍每月来潮，量偏少','Still monthly, lighter flow'),symptoms:H('心悸、怕热、手抖；两个月瘦了 5 公斤','Palpitations, heat intolerance, tremor; lost 5 kg in two months'),body:N('BMI 20','BMI 20'),tsh:H('明显降低','Markedly low'),ecg:H('窦性心动过速','Sinus tachycardia')},
-  answer:['thyroid'],
-  card:{truth:t('甲状腺功能亢进。','Hyperthyroidism.'),key:t('怕热、手抖、体重下降、TSH 明显降低；月经仍每月来潮。','Heat intolerance, tremor, weight loss and a very low TSH; she still has monthly periods.'),trap:t('心慌出汗被当成更年期。','Putting palpitations and sweating down to the menopause.'),outcome:t('转诊内分泌后治疗，症状缓解。','Treated by endocrinology; her symptoms settled.')}}),
-C({id:'h5',d:2,ini:'吴',name:t('吴美兰','Wu Meilan'),age:50,job:t('图书馆管理员','Librarian'),
-  say:t('这一年潮热、出汗，月经也乱了。我是不是哪里出问题了？','A year of hot flushes and sweats, and my periods are erratic. Is something wrong?'),
-  clues:{menstrual:H('近一年周期长短不一，最近隔了 70 天','Cycle length varying for a year; the last gap was 70 days'),symptoms:H('潮热、盗汗、睡眠变差','Hot flushes, night sweats, poor sleep'),body:N('BMI 23','BMI 23'),bp:N('正常','Normal'),glucose:N('正常','Normal'),tsh:N('正常','Normal')},
-  answer:['peri'],
-  card:{truth:t('围绝经期。','Perimenopause.'),key:t('年龄、周期变化和血管舒缩症状都典型；血压、血糖、甲状腺都正常。','Her age, cycle changes and vasomotor symptoms are typical; blood pressure, glucose and thyroid are normal.'),trap:t('担心漏诊，于是给健康的人加诊断。','Adding diagnoses to a healthy woman for fear of missing one.'),outcome:t('对症处理后，睡眠和生活质量改善。','Symptom treatment improved her sleep and quality of life.')}}),
-C({id:'h6',d:2,ini:'赵',name:t('赵红','Zhao Hong'),age:47,job:t('超市店长','Supermarket manager'),
-  say:t('医生说我血糖高，想问问怎么减重。','My doctor says my sugar is high. How can I lose weight?'),
-  file:t('既往检查记录：无','Past test records: none'),
-  clues:{menstrual:H('从年轻起一年来几次，现在仍不规律','A few periods a year since her teens; still irregular'),skin:H('下巴粗毛，拔了二十多年','Coarse chin hair she has plucked for 20 years'),family:H('妹妹被诊断为多囊卵巢综合征','Her sister was diagnosed with PCOS'),body:H('BMI 31','BMI 31'),bp:H('升高','Raised'),testo:H('升高','Raised'),glucose:H('糖尿病范围','In the diabetic range')},
-  answer:['pcos','metabolic'],
-  card:{truth:t('PCOS（一直未诊断），合并 2 型糖尿病和高血压。','Undiagnosed PCOS with type 2 diabetes and hypertension.'),key:t('终身月经稀发、长期多毛、睾酮升高，妹妹有 PCOS。','Lifelong oligomenorrhoea, longstanding hirsutism, raised testosterone and a sister with PCOS.'),trap:t('只处理血糖。PCOS 在中年依然存在，也解释了她的代谢问题。','Treating only the glucose. PCOS persists into midlife and explains her metabolic disease.'),outcome:t('确诊后，她提醒了女儿去检查。','After her diagnosis she asked her daughter to get checked.')}}),
-C({id:'h7',d:2,ini:'林',name:t('林秋','Lin Qiu'),age:45,job:t('编辑','Editor'),
-  say:t('月经半年没来了，应该是绝经了吧？','No period for six months. I suppose that’s the menopause?'),
-  file:t('既往记录：无','Past records: none'),
-  clues:{menstrual:H('既往规律；近 6 个月未来潮','Previously regular; none for six months'),symptoms:H('经常头痛；没有潮热','Frequent headaches; no hot flushes'),prl:H('明显升高','Markedly raised')},
-  asks:[{q:t('乳房有无异常？','Any breast changes?'),a:H('“有时候会流出白色的液体。”','“Sometimes a white fluid leaks out.”')}],
-  answer:['prolactin'],
-  card:{truth:t('高泌乳素血症，需排查垂体病变。','Hyperprolactinaemia; the pituitary needs checking.'),key:t('停经但没有潮热；头痛、溢乳、泌乳素明显升高。','Amenorrhoea without flushes; headaches, galactorrhoea, markedly raised prolactin.'),trap:t('45 岁停经，顺理成章地当成绝经。','Accepting amenorrhoea at 45 as the menopause.'),outcome:t('转诊后发现垂体微腺瘤，药物治疗后好转。','Referral found a small pituitary adenoma, which responded to medication.')}}),
-C({id:'h8',d:2,red:1,ini:'方',name:t('方琴','Fang Qin'),age:51,job:t('出租车司机','Taxi driver'),
-  say:t('胃不舒服一晚上，想吐，背也疼，特别累。','An upset stomach all night, nausea, back pain, exhausted.'),
-  file:t('糖尿病 5 年','Diabetes for five years'),
-  clues:{menstrual:N('近一年不规律','Irregular for a year'),symptoms:H('恶心、上腹不适、背痛、极度疲劳','Nausea, upper abdominal discomfort, back pain, extreme fatigue'),bp:H('升高','Raised'),glucose:H('控制欠佳','Poorly controlled'),ecg:H('异常，提示心肌缺血','Abnormal: signs of ischaemia')},
-  asks:[{q:t('有没有出冷汗？','Any cold sweats?'),a:H('“出了一身冷汗。”','“I was drenched in cold sweat.”')}],
-  answer:['cardiac'], ok:['metabolic','peri'],
-  card:{truth:t('急性冠脉综合征，需紧急转诊。','Acute coronary syndrome; emergency referral.'),key:t('糖尿病女性，恶心、背痛、冷汗，心电图提示缺血。','A woman with diabetes, nausea, back pain, cold sweat, and ischaemic ECG changes.'),trap:t('当成胃病。这是女性心梗最常见的误诊方式。','Calling it indigestion: the most common way heart attacks in women are missed.'),outcome:t('及时转诊，放了支架。','Referred in time; she received a stent.')}}),
-C({id:'h9',d:2,ini:'江',name:t('江淑','Jiang Shu'),age:48,job:t('会计师','Accountant'),
-  say:t('这两年胖得厉害，血压血糖都高了，还容易淤青。','I’ve gained a lot in two years, my blood pressure and sugar are up, and I bruise easily.'),
-  clues:{menstrual:H('近两年不规律','Irregular for two years'),symptoms:H('近端肌无力；容易淤青','Proximal weakness; easy bruising'),body:H('向心性肥胖','Central obesity'),skinsign:H('满月脸；腹部紫纹','Moon face; purple abdominal striae'),bp:H('升高','Raised'),glucose:H('糖尿病范围','In the diabetic range'),cortisol:H('异常','Abnormal')},
-  answer:['cushing'], ok:['metabolic','peri'],
-  card:{truth:t('库欣综合征。','Cushing’s syndrome.'),key:t('紫纹、满月脸、肌无力、淤青，皮质醇筛查异常。高血压和糖尿病是它的结果。','Striae, moon face, weakness and bruising with an abnormal cortisol screen. Her hypertension and diabetes follow from it.'),trap:t('只治血压和血糖，没找背后的原因。','Treating BP and glucose without looking for the cause.'),outcome:t('病因治疗后，血压血糖都明显改善。','Treating the cause improved both her BP and glucose.')}}),
+{id:'h1',d:2,red:1,ini:'冯',name:t('冯敏','Feng Min'),age:46,job:t('律师','Lawyer'),
+ say:t('最近毛长得特别快，是不是多囊加重了？','My hair growth has shot up. Is my PCOS getting worse?'),
+ file:t('15 年前查出 PCOS','Diagnosed with PCOS 15 years ago'),
+ clues:{skin:H('几个月内毛发变多很多，头顶也掉','Much more hair within months; thinning on top'),skinsign:H('声音变粗，体毛像男性','Deeper voice, male-pattern body hair'),testo:H('非常高，比以前高很多','Very high, far higher than before'),menstrual:N('这两年不太准','Irregular for two years')},
+ asks:[{q:t('变化有多快？','How fast did it change?'),a:H('“这四个月突然变多，声音也哑了。”','“Suddenly, over four months. My voice went husky too.”')}],
+ ans:'other',
+ card:{what:t('长了一个会分泌雄激素的肿瘤，要马上转诊。','A tumour making male hormones; she needs urgent referral.'),signs:t('几个月内突然变化，声音变粗。','A sudden change over months, and a deeper voice.'),miss:t('“她本来就有 PCOS”，就把新问题当成老问题。','“She already has PCOS”, so a new problem gets mistaken for the old one.'),later:t('及时转诊，手术后她康复了。','Referred in time, she recovered after surgery.')}},
+{id:'h2',d:2,ini:'宋',name:t('宋梅','Song Mei'),age:49,job:t('退休老师','Retired teacher'),
+ say:t('一阵阵发热，特别累，胖了，记性也差。','Hot flushes, exhausted, gaining weight, forgetful.'),
+ file:t('以前的记录：没有','Past records: none'),
+ clues:{menstrual:H('这一年不准，最近 3 个月没来','Irregular for a year; none for three months'),symptoms:H('一阵阵发热；但同时怕冷、便秘、很累','Hot flushes, but also cold, constipated and tired'),family:N('“记不清了。”','“I don’t really know.”'),tsh:H('甲状腺功能偏低','Underactive thyroid'),glucose:H('偏高','High')},
+ ans:'other',
+ card:{what:t('更年期前后，加上甲状腺问题和血糖偏高。','The run-up to menopause, plus a thyroid problem and high blood sugar.'),signs:t('发热像更年期，但怕冷、便秘不是。','Flushes fit menopause; feeling cold and constipated do not.'),miss:t('全部怪“更年期到了”。','Blaming it all on “the change”.'),later:t('几个问题分开治疗后，她精神多了。','With each problem treated, she felt far better.')}},
+{id:'h3',d:2,red:1,ini:'林',name:t('林芳','Lin Fang'),age:44,job:t('健身房经理','Gym manager'),
+ say:t('月经 3 个月没来，我习惯了。能开点药让它来吗？','No period for three months. I’m used to it. Can you give me something to bring it on?'),
+ file:t('12 年前查出 PCOS','Diagnosed with PCOS 12 years ago'),
+ clues:{menstrual:H('一直不准，这次 3 个月没来','Always irregular; three months this time'),symptoms:H('最近想吐，胸胀','Recently nauseous, sore breasts'),preg:H('阳性：怀孕了','Positive: she is pregnant')},
+ asks:[{q:t('最近有避孕吗？','Have you been using contraception?'),a:H('“没有，我以为自己很难怀孕。”','“No. I thought I could hardly get pregnant.”')}],
+ ans:'other',
+ card:{what:t('怀孕了。','She is pregnant.'),signs:t('想吐、胸胀，验孕阳性。有 PCOS 也能自然怀孕。','Nausea, sore breasts, a positive test. Women with PCOS can get pregnant naturally.'),miss:t('没验孕就开药。','Prescribing without a pregnancy test.'),later:t('及时发现怀孕，孕期密切关注血糖。','Found in time; her blood sugar was watched closely through pregnancy.')}},
+{id:'h4',d:2,ini:'何',name:t('何丽','He Li'),age:47,job:t('保险经纪','Insurance broker'),
+ say:t('心慌、出汗、睡不着，人也瘦了，是更年期吧？','Racing heart, sweating, can’t sleep, losing weight. It’s the menopause, right?'),
+ file:t('以前的记录：没有','Past records: none'),
+ clues:{menstrual:N('还是每个月来，量少了','Still monthly, lighter'),symptoms:H('心跳快、怕热、手抖，两个月瘦了 5 公斤','Fast heartbeat, feels hot, shaky hands, lost 5 kg in two months'),tsh:H('甲状腺太活跃（甲亢）','Overactive thyroid'),ecg:H('心跳偏快','Fast heart rate')},
+ ans:'other',
+ card:{what:t('甲状腺太活跃（甲亢）。','An overactive thyroid.'),signs:t('怕热、手抖、变瘦，月经还是每个月来。','Feeling hot, shaky and losing weight, while still having monthly periods.'),miss:t('心慌出汗，就以为是更年期。','Assuming a racing heart and sweats are the menopause.'),later:t('治疗后症状消失了。','Treatment cleared her symptoms.')}},
+{id:'h5',d:2,ini:'吴',name:t('吴美兰','Wu Meilan'),age:50,job:t('图书馆管理员','Librarian'),
+ say:t('这一年一阵阵发热、出汗，月经也乱了。我是不是哪里出问题了？','A year of hot flushes and sweats, and my periods are erratic. Is something wrong?'),
+ clues:{menstrual:H('这一年忽早忽晚，最近隔了 70 天','Erratic all year; the last gap was 70 days'),symptoms:H('一阵阵发热、晚上出汗、睡不好','Hot flushes, night sweats, poor sleep'),bp:N('正常','Normal'),glucose:N('正常','Normal'),tsh:N('正常','Normal')},
+ ans:'other', part:'fine',
+ card:{what:t('更年期前后的正常变化。','The normal run-up to menopause.'),signs:t('50 岁，月经开始乱，有一阵阵发热，其他检查都正常。','At 50, erratic periods and hot flushes, with every other test normal.'),miss:t('担心漏诊，就给健康的人加诊断。','Adding diagnoses to a healthy woman for fear of missing one.'),later:t('更年期门诊帮她改善了睡眠。','A menopause clinic helped her sleep.')}},
+{id:'h6',d:2,ini:'赵',name:t('赵红','Zhao Hong'),age:47,job:t('超市店长','Supermarket manager'),
+ say:t('医生说我血糖高，想问怎么减肥。','My doctor says my sugar is high. How do I lose weight?'),
+ file:t('以前的检查记录：没有','Past test records: none'),
+ clues:{menstrual:H('从年轻时一年来几次，现在还是乱','A few periods a year since her teens; still irregular'),skin:H('下巴粗毛，拔了二十多年','Coarse chin hair, plucked for twenty years'),family:H('妹妹查出了 PCOS','Her sister was diagnosed with PCOS'),body:H('偏胖','Overweight'),bp:H('偏高','High'),testo:H('偏高','A bit high'),glucose:H('已经是糖尿病了','Already in the diabetes range')},
+ ans:'pcos', part:'other',
+ card:{what:t('PCOS，一直没被发现，现在已经有糖尿病和高血压。','PCOS that was never found; she now has diabetes and high blood pressure.'),signs:t('一辈子月经少、粗毛，妹妹也有 PCOS。','Rare periods all her life, coarse hair, and a sister with PCOS.'),miss:t('只管血糖，不问背后的原因。','Treating the sugar without asking why.'),later:t('确诊后，她提醒女儿也去检查。','After her diagnosis she asked her daughter to get checked.')}},
+{id:'h7',d:2,ini:'林',name:t('林秋','Lin Qiu'),age:45,job:t('编辑','Editor'),
+ say:t('月经半年没来，应该是绝经了吧？','No period for six months. That’s the menopause, isn’t it?'),
+ file:t('以前的记录：没有','Past records: none'),
+ clues:{menstrual:H('以前准，半年没来','Regular before; none for six months'),symptoms:H('经常头痛，没有一阵阵发热','Frequent headaches; no hot flushes'),prl:H('很高','Very high')},
+ asks:[{q:t('胸部有没有异常？','Any changes in your breasts?'),a:H('“有时会流出白色液体。”','“Sometimes white fluid leaks out.”')}],
+ ans:'other',
+ card:{what:t('泌乳素很高，要查脑垂体。','Very high prolactin; her pituitary needs checking.'),signs:t('没有更年期的发热，却头痛、流奶。','No menopausal flushes, but headaches and milky fluid.'),miss:t('45 岁不来月经，就当成绝经。','Assuming no periods at 45 means menopause.'),later:t('发现脑垂体有个小瘤，吃药后好转。','A small pituitary growth was found and shrank with medicine.')}},
+{id:'h8',d:2,red:1,ini:'方',name:t('方琴','Fang Qin'),age:51,job:t('出租车司机','Taxi driver'),
+ say:t('胃不舒服一晚上，想吐，背也疼，特别累。','Upset stomach all night, nausea, back pain, exhausted.'),
+ file:t('糖尿病 5 年','Diabetes for five years'),
+ clues:{menstrual:N('这一年不太准','Irregular this year'),symptoms:H('想吐、胃不舒服、背痛、特别累','Nausea, stomach discomfort, back pain, extreme tiredness'),bp:H('偏高','High'),glucose:H('控制不好','Poorly controlled'),ecg:H('不正常，可能是心脏缺血','Abnormal: possible heart strain')},
+ asks:[{q:t('有没有出冷汗？','Any cold sweats?'),a:H('“出了一身冷汗。”','“I was soaked in cold sweat.”')}],
+ ans:'other',
+ card:{what:t('心脏病发作的信号，要马上去急诊。','Signs of a heart attack; she needs emergency care now.'),signs:t('有糖尿病的女性，背痛、想吐、出冷汗，心电图不正常。','A woman with diabetes, back pain, nausea, cold sweat and an abnormal ECG.'),miss:t('当成胃病。女性心脏病发作，常常不是“胸口痛”。','Calling it indigestion. Heart attacks in women often do not feel like chest pain.'),later:t('及时送医，放了支架。','Rushed to hospital in time, she had a stent fitted.')}},
+{id:'h9',d:2,ini:'江',name:t('江淑','Jiang Shu'),age:48,job:t('会计师','Accountant'),
+ say:t('这两年胖得厉害，血压血糖都高了，还容易淤青。','I’ve gained a lot in two years, my blood pressure and sugar are up, and I bruise easily.'),
+ clues:{menstrual:H('这两年不准','Irregular for two years'),symptoms:H('腿没力气，容易淤青','Weak legs, bruises easily'),body:H('胖在肚子','Weight round the belly'),skinsign:H('脸变圆，肚子有紫红色条纹','Rounder face, purple stretch marks on the belly'),bp:H('偏高','High'),glucose:H('已经是糖尿病了','In the diabetes range'),cortisol:H('不正常','Abnormal')},
+ ans:'other',
+ card:{what:t('库欣综合征（压力激素太多），血压血糖高都是它引起的。','Cushing’s syndrome; it caused her blood pressure and sugar problems.'),signs:t('紫红色条纹、脸变圆、容易淤青。','Purple stretch marks, a rounder face, easy bruising.'),miss:t('只治血压血糖，不找原因。','Treating the numbers without finding the cause.'),later:t('找到原因治疗后，血压血糖都好多了。','Treating the cause fixed both.')}},
+{id:'h10',d:2,ini:'杜',name:t('杜可','Du Ke'),age:19,job:t('大学生','University student'),
+ say:t('最近特别累，脖子好像变粗了，月经也一直不准。','I’m always tired, my neck looks bigger, and my periods have never been regular.'),
+ file:t('第一次看病，没有以前的记录','First visit; no past records'),
+ clues:{menstrual:H('13 岁起就 40–80 天一次','Every 40–80 days since she was 13'),skin:H('下巴长痘，嘴唇有粗毛','Chin spots, coarse lip hair'),symptoms:H('很累、怕冷，脖子前面肿','Tired, cold, swelling at the front of the neck'),family:H('妈妈有甲状腺的病','Mum has a thyroid condition'),testo:H('偏高','A bit high'),tsh:H('甲状腺功能偏低','Underactive thyroid')},
+ ans:'pcos', part:'other',
+ card:{what:t('PCOS，同时有甲状腺问题。','PCOS, plus a thyroid problem.'),signs:t('从小月经少、有粗毛是 PCOS；脖子肿、怕冷、妈妈有甲状腺病是甲状腺。','Lifelong rare periods and coarse hair are PCOS; a swollen neck, feeling cold and her mum’s history point to the thyroid.'),miss:t('“年轻人累，就是学习压力大”。','“Young people are just tired from studying.”'),later:t('两个一起治，精神和月经都好了。','With both treated, her energy and periods improved.')}},
+{id:'h11',d:2,ini:'罗',name:t('罗婷','Luo Ting'),age:24,job:t('客服','Customer service agent'),
+ say:t('我总是口渴，上厕所也多，可能是天气太热了。','I’m always thirsty and running to the toilet. Probably the heat.'),
+ file:t('以前的记录：没有','Past records: none'),
+ clues:{menstrual:H('一年只来 4–5 次','Only 4–5 periods a year'),skin:H('下巴有粗毛','Coarse chin hair'),family:H('爸爸有糖尿病','Dad has diabetes'),body:H('偏胖','Overweight'),skinsign:H('脖子后面、腋下发黑','Dark skin on her neck and armpits'),testo:H('偏高','A bit high'),glucose:H('已经是糖尿病了','In the diabetes range')},
+ ans:'pcos', part:'other',
+ card:{what:t('PCOS，而且已经有糖尿病。','PCOS, and she already has diabetes.'),signs:t('一直口渴、尿多，脖子发黑，月经少。','Constant thirst and toilet trips, a dark neck, rare periods.'),miss:t('“年轻人不会得糖尿病”。','“Young people don’t get diabetes.”'),later:t('两个一起管理，血糖控制住了。','Managing both brought her sugar under control.')}},
+{id:'h12',d:2,ini:'白',name:t('白雪','Bai Xue'),age:27,job:t('社工','Social worker'),
+ say:t('胸部会流出白色液体，月经本来就不准。','White fluid leaks from my breasts, and my periods were never regular anyway.'),
+ file:t('以前的记录：没有','Past records: none'),
+ clues:{menstrual:H('从年轻时起就 40–90 天一次','Every 40–90 days since her teens'),skin:H('嘴唇有粗毛，有痘','Coarse lip hair, spots'),meds:H('胃胀，自己买胃药（多潘立酮）吃了一年','Bloating; has taken an over-the-counter stomach drug (domperidone) for a year'),prl:H('偏高','High'),testo:H('偏高','A bit high')},
+ asks:[{q:t('流白色液体是什么时候开始的？','When did the fluid start?'),a:H('“吃胃药半年以后。”','“About six months after starting the stomach pills.”')}],
+ ans:'pcos', part:'other',
+ card:{what:t('PCOS，再加上胃药引起的泌乳素偏高。','PCOS, plus high prolactin caused by her stomach medicine.'),signs:t('月经问题早在吃药前就有，是 PCOS；流奶在吃药后才出现，是胃药的副作用。','Her periods were irregular before the drug (PCOS); the fluid began after it (a side effect).'),miss:t('不问在吃什么药。','Not asking about medicines.'),later:t('在医生建议下换了胃药，流奶好了；PCOS 继续管理。','With her doctor’s advice she switched medicine; the fluid stopped, and her PCOS is being managed.')}},
 
-C({id:'h10',d:2,ini:'杜',name:t('杜可','Du Ke'),age:19,job:t('大学生','University student'),
-  say:t('最近特别累，脖子好像变粗了，月经也一直不准。','I’m always tired, my neck looks bigger, and my periods have never been regular.'),
-  file:t('既往记录：无（首次就诊）','Past records: none (first visit)'),
-  clues:{menstrual:H('初潮 13 岁起就 40–80 天一次','Every 40–80 days since menarche at 13'),skin:H('下颌痤疮；上唇粗毛','Jawline acne; coarse upper-lip hair'),symptoms:H('乏力、怕冷；颈前肿大','Fatigue, cold intolerance; swelling at the front of the neck'),family:H('母亲有桥本甲状腺炎','Mother has Hashimoto’s thyroiditis'),testo:H('升高','Raised'),tsh:H('升高','Raised')},
-  answer:['pcos','thyroid'],
-  card:{truth:t('PCOS 合并桥本甲状腺炎（甲减）。','PCOS with Hashimoto’s thyroiditis (hypothyroidism).'),key:t('从初潮起月经稀发、多毛、睾酮升高是 PCOS；颈前肿大、怕冷、家族史和 TSH 升高是甲状腺问题。PCOS 女性合并自身免疫性甲状腺炎并不少见。','Oligomenorrhoea since menarche, hirsutism and high testosterone are PCOS; a goitre, cold intolerance, family history and high TSH are thyroid disease. Autoimmune thyroiditis is not unusual alongside PCOS.'),trap:t('“年轻人累，就是学习压力大”；或者只找到一个病就停下。','“Young people are tired from studying”, or stopping at one diagnosis.'),outcome:t('两个病同时治疗，精力和月经都改善。','Both treated together; her energy and cycles improved.')}}),
-C({id:'h11',d:2,ini:'罗',name:t('罗婷','Luo Ting'),age:24,job:t('客服专员','Customer service agent'),
-  say:t('我总是口渴，上厕所也多，可能是天气太热了。','I’m always thirsty and peeing a lot. Probably the heat.'),
-  file:t('既往记录：无','Past records: none'),
-  clues:{menstrual:H('自初潮起不规律，一年 4–5 次','Irregular since menarche, 4–5 periods a year'),skin:H('下巴粗毛','Coarse chin hair'),family:H('父亲 2 型糖尿病','Father has type 2 diabetes'),body:H('BMI 31','BMI 31'),skinsign:H('颈后、腋下黑棘皮','Acanthosis on the neck and armpits'),testo:H('升高','Raised'),glucose:H('糖尿病范围','In the diabetic range')},
-  answer:['pcos','metabolic'],
-  card:{truth:t('PCOS 合并 2 型糖尿病。','PCOS with type 2 diabetes.'),key:t('口渴多尿、黑棘皮和血糖结果是糖尿病；终身月经稀发加多毛、睾酮升高是 PCOS。','Thirst, polyuria, acanthosis and her glucose result mean diabetes; lifelong oligomenorrhoea with hirsutism and raised testosterone mean PCOS.'),trap:t('“年轻人不会得糖尿病”。PCOS 女性的 2 型糖尿病可以出现得很早。','“Young people don’t get diabetes.” In PCOS, type 2 diabetes can come early.'),outcome:t('同时治疗糖尿病和 PCOS，血糖得到控制。','Treated for both; her glucose came under control.')}}),
-C({id:'h12',d:2,ini:'白',name:t('白雪','Bai Xue'),age:27,job:t('社工','Social worker'),
-  say:t('胸部会流出白色液体，月经本来就不准。','A white fluid leaks from my breasts, and my periods were never regular anyway.'),
-  file:t('既往记录：无','Past records: none'),
-  clues:{menstrual:H('自初潮起 40–90 天一次','Every 40–90 days since menarche'),skin:H('上唇粗毛；痤疮','Coarse upper-lip hair; acne'),meds:H('胃胀，自行长期服用多潘立酮约一年','Bloating; has taken domperidone on her own for about a year'),prl:H('中度升高','Moderately raised'),testo:H('升高','Raised')},
-  asks:[{q:t('溢乳是什么时候开始的？','When did the discharge start?'),a:H('“大概吃胃药半年以后。”','“About six months after I started the stomach pills.”')}],
-  answer:['pcos','prolactin'],
-  card:{truth:t('PCOS，合并药物引起的高泌乳素血症。','PCOS with drug-induced hyperprolactinaemia.'),key:t('月经问题早于用药，伴多毛和睾酮升高，是 PCOS；溢乳在服用多潘立酮后出现，泌乳素升高是药物引起的。','Her cycles were irregular long before the drug, with hirsutism and high testosterone: PCOS. The discharge began after domperidone: drug-induced prolactin rise.'),trap:t('不问用药史，想用一个病解释全部。','Skipping the medication history and forcing one diagnosis to explain everything.'),outcome:t('在医生指导下停用多潘立酮后，泌乳素恢复正常；PCOS 继续管理。','After stopping domperidone under medical advice, prolactin normalised; her PCOS is still managed.')}}),
-
-/* ===== HARD: family (always the same day) ===== */
-C({id:'f1',d:2,fam:'grandma',noWorkup:1,ini:'兰',name:t('陈秀兰','Chen Xiulan'),age:74,job:t('纺织厂退休工人','Retired textile worker'),
-  say:t('我是陪外孙女来的。医生你顺便帮我看看：最近总是累，爬两层楼就喘。','I came with my granddaughter. Could you check me too? I’m always tired and short of breath after two flights of stairs.'),
-  file:t('2 型糖尿病 12 年；高血压','Type 2 diabetes for 12 years; hypertension'),
-  clues:{menstrual:H('早已绝经。“年轻时一直不准，具体记不清了。”','Long postmenopausal. “Always irregular when I was young. I can’t remember the details.”'),family:H('“我女儿美华跟我一样，月经从小就乱。外孙女晓雯今天也来了。”','“My daughter Meihua is like me, irregular since she was a girl. My granddaughter Xiaowen is here today too.”'),bp:H('升高','Raised'),glucose:H('控制欠佳','Poorly controlled'),ecg:H('异常，提示心肌缺血','Abnormal: signs of ischaemia'),us:N('卵巢萎缩（符合年龄）','Atrophic ovaries (age-appropriate)'),amh:N('测不到（符合年龄）','Undetectable (age-appropriate)')},
-  asks:[{q:t('爬楼时胸口闷吗？','Any chest tightness on the stairs?'),a:H('“有点闷，歇一会儿就好。”','“A bit tight. It passes if I rest.”')},{q:t('生美华时孩子多重？','How heavy was Meihua at birth?'),a:H('“4.3 公斤，那时候也没查过血糖。”','“4.3 kg. Nobody checked my sugar back then.”')}],
-  answer:['metabolic','cardiac'], bonus:['pcos'],
-  card:{truth:t('糖尿病和高血压控制欠佳，劳力性胸闷需转心内科；年轻时很可能患有 PCOS。','Poorly controlled diabetes and hypertension, exertional chest tightness needing cardiology; very likely PCOS when young.'),key:t('糖尿病女性的劳力性胸闷和缺血性心电图。年轻时月经不规律、新生儿 4.3 公斤，指向 PCOS 和未筛查的妊娠糖尿病。','Exertional chest tightness and an ischaemic ECG in a woman with diabetes. Irregular cycles in youth and a 4.3 kg baby point to PCOS and unscreened gestational diabetes.'),trap:t('当成“年纪大了”，只开降糖药。','Putting it down to age and adjusting her diabetes pills.'),outcome:t('PCOS 不会随绝经消失，几十年的代谢风险一直跟着她。','PCOS does not end at menopause; decades of metabolic risk followed her.')}}),
-C({id:'f2',d:2,fam:'mother',ini:'华',name:t('周美华','Zhou Meihua'),age:48,job:t('服装店店长','Shop manager'),
-  say:t('晚上出汗睡不好，心慌，还老口渴。','Night sweats, poor sleep, palpitations, and I’m always thirsty.'),
-  clues:{menstrual:H('自初潮起 2–3 个月一次；最近一次隔了 4 个月','Every 2–3 months since menarche; the last gap was four months'),symptoms:H('潮热、盗汗、心悸；口渴、夜尿多','Flushes, night sweats, palpitations; thirst and passing urine at night'),skin:H('下巴粗毛几十年了','Coarse chin hair for decades'),family:H('“我妈有糖尿病、高血压，今天陪我女儿一起来的。”','“My mother has diabetes and high blood pressure. She came with my daughter today.”'),body:H('BMI 28','BMI 28'),testo:H('升高','Raised'),glucose:H('糖尿病范围','In the diabetic range')},
-  asks:[{q:t('孕期血糖怎么样？','How was your glucose in pregnancy?'),a:H('“怀晓雯时有妊娠糖尿病，生完就没再查过。”','“I had gestational diabetes with Xiaowen and never had it rechecked.”')}],
-  answer:['peri','metabolic'], bonus:['pcos'],
-  card:{truth:t('围绝经期，合并 2 型糖尿病；一直未诊断的 PCOS。','Perimenopause with type 2 diabetes; PCOS never diagnosed.'),key:t('潮热盗汗是围绝经期；口渴夜尿是糖尿病。自初潮起月经稀发、多毛和睾酮升高，指向 PCOS。','Flushes and sweats are perimenopause; thirst and nocturia are diabetes. Lifelong oligomenorrhoea, hirsutism and raised testosterone point to PCOS.'),trap:t('所有症状都当成更年期，漏掉糖尿病。','Calling it all the menopause and missing her diabetes.'),outcome:t('妊娠糖尿病后从未复查，糖尿病晚发现了好几年。','Never rechecked after gestational diabetes, her diabetes was found years late.')}}),
-C({id:'f3',d:2,fam:'daughter',ini:'雯',name:t('林晓雯','Lin Xiaowen'),age:20,job:t('大学生','University student'),
-  say:t('妈妈和外婆让我也来看看。我月经有时候一个多月才来。','Mum and Grandma told me to come too. Sometimes my period takes over a month.'),
-  clues:{menstrual:H('周期 35–50 天，初潮 12 岁','Cycles 35–50 days; menarche at 12'),skin:N('偶尔长痘，不严重','Occasional mild acne'),family:H('母亲：月经从小不规律、孕期糖尿病；外婆：糖尿病、高血压','Mother: irregular since girlhood, gestational diabetes. Grandmother: diabetes, hypertension'),body:N('BMI 20','BMI 20'),testo:N('正常上限','Upper limit of normal'),amh:H('升高','Raised'),us:H('双侧卵巢多卵泡','Multiple follicles in both ovaries')},
-  answer:['pcos'],
-  card:{truth:t('多囊卵巢综合征。','Polycystic ovary syndrome.'),key:t('周期超过 35 天，加卵巢多囊样改变（初潮已 8 年，可用超声或 AMH），满足 2 条。家族史提示要往这里查。','Cycles over 35 days plus polycystic morphology (8 years after menarche, so scan or AMH apply): two criteria. The family history is what prompts the search.'),trap:t('她自己的症状很轻。不看家族史，就会让她回家。','Her own symptoms are mild. Ignore the family history and she goes home.'),outcome:t('20 岁确诊，提前管理风险。','Diagnosed at 20, with her risks managed early.')}})
+/* ===== HARD: one family, always the same day ===== */
+{id:'f1',d:2,fam:'grandma',ini:'兰',name:t('陈秀兰','Chen Xiulan'),age:74,job:t('退休纺织工人','Retired textile worker'),
+ say:t('我是陪外孙女来的。医生，顺便帮我看看：最近总是累，爬两层楼就喘。','I came with my granddaughter. Doctor, could you check me too? I’m always tired and out of breath after two flights of stairs.'),
+ file:t('糖尿病 12 年，高血压','Diabetes for 12 years; high blood pressure'),
+ clues:{menstrual:H('早就绝经了。“年轻时一直不准，记不清了。”','Long past menopause. “Irregular when I was young; I can’t remember much.”'),family:H('“我女儿美华跟我一样，月经从小就乱。外孙女晓雯今天也来了。”','“My daughter Meihua is like me, irregular since girlhood. My granddaughter Xiaowen came today too.”'),bp:H('偏高','High'),glucose:H('控制不好','Poorly controlled'),ecg:H('不正常，可能是心脏缺血','Abnormal: possible heart strain'),us:N('卵巢萎缩（这个年纪正常）','Small ovaries (normal at her age)')},
+ asks:[{q:t('爬楼时胸口闷吗？','Does your chest feel tight on the stairs?'),a:H('“有点闷，歇一会就好。”','“A bit. It passes if I rest.”')},{q:t('生美华时，孩子多重？','How heavy was Meihua at birth?'),a:H('“4.3 公斤，那时候没查过血糖。”','“4.3 kg. Nobody checked my sugar back then.”')}],
+ ans:'other', part:'pcos',
+ card:{what:t('心脏要马上检查，糖尿病也要好好控制。她年轻时很可能就有 PCOS。','Her heart needs checking now and her diabetes needs better control. She very likely had PCOS when young.'),signs:t('爬楼胸闷、心电图不正常。年轻时月经不准、宝宝 4.3 公斤，是 PCOS 留下的影子。','Chest tightness on stairs and an abnormal ECG. Irregular periods when young and a 4.3 kg baby are shadows of PCOS.'),miss:t('“年纪大了，喘是正常的”。','“She’s old; breathlessness is normal.”'),later:t('PCOS 不会因为绝经消失，几十年的风险一直跟着她。','PCOS does not end at menopause; the risk followed her for decades.')}},
+{id:'f2',d:2,fam:'mother',ini:'华',name:t('周美华','Zhou Meihua'),age:48,job:t('服装店店长','Shop manager'),
+ say:t('晚上出汗睡不好，心慌，还老是口渴。','Night sweats, poor sleep, a racing heart, and I’m always thirsty.'),
+ clues:{menstrual:H('从第一次来月经就 2–3 个月一次，最近隔了 4 个月','Every 2–3 months since her first period; the last gap was four months'),symptoms:H('一阵阵发热、晚上出汗、心慌；口渴，晚上老起来上厕所','Hot flushes, night sweats, racing heart; thirsty and up at night to pee'),skin:H('下巴粗毛几十年了','Coarse chin hair for decades'),family:H('“我妈有糖尿病、高血压，今天陪我女儿来的。”','“My mum has diabetes and high blood pressure. She came with my daughter today.”'),body:H('偏胖','Overweight'),testo:H('偏高','A bit high'),glucose:H('已经是糖尿病了','In the diabetes range')},
+ asks:[{q:t('怀孕时血糖怎样？','How was your blood sugar in pregnancy?'),a:H('“怀晓雯时有妊娠糖尿病，生完就没查过。”','“I had pregnancy diabetes with Xiaowen and never got rechecked.”')}],
+ ans:'pcos', part:'other',
+ card:{what:t('一辈子没被发现的 PCOS，现在有糖尿病，也到了更年期前后。','PCOS that was never found, now with diabetes, in the run-up to menopause.'),signs:t('一辈子月经少、粗毛、怀孕时血糖高。','Rare periods all her life, coarse hair, and diabetes in pregnancy.'),miss:t('全部当成更年期，漏掉糖尿病和 PCOS。','Calling it all menopause and missing both diabetes and PCOS.'),later:t('怀孕时的糖尿病后来没复查，糖尿病晚发现了好几年。','Never rechecked after pregnancy, her diabetes was found years late.')}},
+{id:'f3',d:2,fam:'daughter',ini:'雯',name:t('林晓雯','Lin Xiaowen'),age:20,job:t('大学生','University student'),
+ say:t('妈妈和外婆让我也来看看。我月经有时候一个多月才来。','Mum and Grandma told me to come too. Sometimes my period takes over a month.'),
+ clues:{menstrual:H('35–50 天一次','Every 35–50 days'),skin:N('偶尔长痘','Occasional spots'),family:H('妈妈：月经从小就乱，怀孕时血糖高；外婆：糖尿病、高血压','Mum: irregular since girlhood, diabetes in pregnancy. Grandma: diabetes, high blood pressure'),body:N('不胖不瘦','Healthy weight'),testo:N('正常偏高','Upper end of normal'),amh:H('偏高','A bit high'),us:H('卵泡很多','Lots of follicles')},
+ ans:'pcos',
+ card:{what:t('PCOS。','PCOS.'),signs:t('月经一个多月才来，卵泡多，再加上妈妈和外婆的情况。','Periods over a month apart, many follicles, and her mum’s and grandma’s history.'),miss:t('她自己症状很轻，不看家族就会让她回家。','Her own signs are mild; without the family story she would be sent home.'),later:t('20 岁就发现，比妈妈和外婆早了几十年。','Found at 20, decades earlier than her mum or grandma.')}}
 ];
-const CASE = Object.fromEntries(CASES.map(c=>[c.id,c]));
+
+const CASE=Object.fromEntries(CASES.map(c=>[c.id,c]));
+const hasPcos=c=>c.ans==='pcos'||c.part==='pcos'||c.fam==='grandma';
 
 /* ---------- handbook ---------- */
-const MANUAL = {
-  flow:{tab:t('接诊与结算','Clinic and review'), html(){return `
-    <p class="lead">${esc(L(t('你是社区诊所的接诊医生。每局 3 个门诊日，每天随机来 3 位女性，每人带来一句主诉。','You are the duty doctor at a community clinic. A run lasts three clinic days, with three women drawn at random each day, each with a presenting complaint.')))}</p>
-    <p>${esc(L(t('通过病史采集、体格检查和辅助检查，判断她是否患有多囊卵巢综合征（PCOS），或是否另有病因。','Use history, examination and investigations to decide whether she has polycystic ovary syndrome (PCOS), or another cause.')))}</p>
-    <h3>${esc(L(t('难度','Difficulty')))}</h3>
-    <div class="scroll"><table class="tbl"><thead><tr><th></th><th>${esc(L(t('特点','Profile')))}</th><th>${esc(L(t('每日门诊时间','Daily time')))}</th><th>${esc(L(t('判定','Verdict')))}</th></tr></thead><tbody>
-    ${DIFF.map(d=>`<tr><td>${esc(L(d.name))}</td><td>${esc(L(d.level))}</td><td class="n">${d.time} ${esc(L(T.min))}</td><td>${esc(L(d.verdict))}</td></tr>`).join('')}</tbody></table></div>
-    <h3>${esc(L(t('门诊时间','Clinic time')))}</h3>
-    <p>${esc(L(t('每项问诊、查体和检查都占用门诊时间，无法为每位病人完成全套检查。请根据主诉安排检查的先后。','Every question, examination and test uses clinic time, so a full work-up for everyone is impossible. Prioritise according to the complaint.')))}</p>
-    <h3>${esc(L(t('计分','Scoring')))}</h3>
+const MANUAL={
+  play:{tab:t('怎么玩','How to play'),html(){return `
+    <p class="lead">${esc(L(t('你是社区诊所新来的医生。每天有 3 位女性来看病。','You’re the new doctor at a community clinic. Three women come in every day.')))}</p>
+    <ol class="steps">
+      <li>${esc(L(t('听她说哪里不舒服，然后从左边选择要问的问题、要做的检查。每一项都花时间，一天的时间有限。','Hear what’s bothering her, then pick questions and tests on the left. Each one takes time, and the day is short.')))}</li>
+      <li>${esc(L(t('最后给她一个建议：可能是 PCOS，建议去查；可能是别的问题，建议看其他科；或者暂时没事，放心。','Then give your advice: could be PCOS, get checked; something else, see another specialist; or nothing to worry about for now.')))}</li>
+      <li>${esc(L(t('晚上下班时揭晓结果。建议对了拿工资；漏掉了病人会被投诉，还要扣钱。','Results come at closing time. Right advice earns pay; missing a patient brings a complaint and a fine.')))}</li>
+      <li>${esc(L(t('每天晚上要交房租，房租隔几天就涨一次。','Rent is due every night, and it goes up every few days.')))}</li>
+    </ol>
     <div class="scroll"><table class="tbl"><tbody>
-      <tr><td>${esc(L(t('判定完全正确','Fully correct')))}</td><td class="n plus">+100</td></tr>
-      <tr><td>${esc(L(t('漏诊一项或以上（未误诊）','One or more diagnoses missed, none wrong')))}</td><td class="n plus">+50</td></tr>
-      <tr><td>${esc(L(t('判定错误，或作出病人不存在的诊断','Wrong verdict, or a diagnosis she does not have')))}</td><td class="n minus">−100</td></tr>
-      <tr><td>${esc(L(t('红旗病例判错','Red-flag case wrong')))}</td><td class="n minus">−200</td></tr>
-      <tr><td>${esc(L(t('确诊 PCOS 前未完成妊娠试验、TSH、泌乳素','PCOS diagnosed without pregnancy test, TSH and prolactin')))}</td><td class="n">×0.5</td></tr>
-      <tr><td>${esc(L(t('发现隐藏的既往诊断','Spotting a hidden past diagnosis')))}</td><td class="n plus">+50</td></tr>
+      <tr><td>${esc(L(t('建议正确','Right advice')))}</td><td class="n plus">+RM ${PAY}</td></tr>
+      <tr><td>${esc(L(t('方向对了一半','Half right')))}</td><td class="n plus">+RM ${PART_PAY}</td></tr>
+      <tr><td>${esc(L(t('建议错了','Wrong advice')))}</td><td class="n minus">−RM ${FINE}</td></tr>
+      <tr><td>${esc(L(t('漏掉 PCOS，或者让有病的人“放心回家”','Missing PCOS, or sending a sick woman home')))}</td><td class="n minus">${esc(L(t('投诉 +1','+1 complaint')))}</td></tr>
+      <tr><td>${esc(L(t('急症判错','Getting an emergency wrong')))}</td><td class="n minus">−RM ${RED_FINE} · ${esc(L(t('投诉 +1','+1 complaint')))}</td></tr>
+      <tr><td>${esc(L(t('说是 PCOS，却没先验孕','Calling PCOS without a pregnancy test')))}</td><td class="n">${esc(L(t('工资减半','Half pay')))}</td></tr>
     </tbody></table></div>
-    <h3>${esc(L(t('结算','Review')))}</h3>
-    <p>${esc(L(t('当天 3 位病人全部判定后，结束门诊统一结算。判定有误的病例会自动展开病例解析。','When all three patients have a verdict, close the clinic for the review. Cases you got wrong open their case review automatically.')))}</p>`}},
-  crit:{tab:t('诊断标准','Criteria'), html(){return `
-    <p class="lead">${esc(L(t('PCOS 是排除性诊断：先排除其他病因，再对照鹿特丹标准。','PCOS is a diagnosis of exclusion: rule out other causes, then apply the Rotterdam criteria.')))}</p>
-    <h3>${esc(L(t('鹿特丹标准（三项满足两项）','Rotterdam criteria (two of three)')))}</h3>
-    <div class="scroll"><table class="tbl"><tbody>
-      <tr><td>${esc(L(T.c1))}</td><td>${esc(L(t('周期 > 35 天，或每年少于 8 次月经','Cycles over 35 days, or fewer than 8 periods a year')))}</td></tr>
-      <tr><td>${esc(L(T.c2))}</td><td>${esc(L(t('多毛、痤疮、雄激素性脱发，或血清睾酮升高','Hirsutism, acne, androgenic alopecia, or raised testosterone')))}</td></tr>
-      <tr><td>${esc(L(T.c3))}</td><td>${esc(L(t('超声多卵泡，或成人 AMH 升高；初潮后 8 年内不适用','Many follicles on ultrasound, or raised AMH in adults; not applicable within 8 years of menarche')))}</td></tr>
-    </tbody></table></div>
-    <h3>${esc(L(t('需要排除的疾病','Conditions to exclude')))}</h3>
-    <div class="scroll"><table class="tbl"><thead><tr><th>${esc(L(t('疾病','Condition')))}</th><th>${esc(L(t('特征性表现','Distinguishing feature')))}</th><th>${esc(L(t('检查','Test')))}</th></tr></thead><tbody>
-      <tr><td>${esc(L(t('妊娠','Pregnancy')))}</td><td>${esc(L(t('既往规律，突然停经','Sudden amenorrhoea after regular cycles')))}</td><td>hCG</td></tr>
-      <tr><td>${esc(L(t('甲状腺功能减退 / 亢进','Hypo- / hyperthyroidism')))}</td><td>${esc(L(t('畏寒便秘乏力 / 怕热手抖消瘦','Cold, constipated, tired / hot, tremor, weight loss')))}</td><td>TSH</td></tr>
-      <tr><td>${esc(L(t('高泌乳素血症','Hyperprolactinaemia')))}</td><td>${esc(L(t('溢乳、头痛','Galactorrhoea, headache')))}</td><td>${esc(L(t('泌乳素','Prolactin')))}</td></tr>
-      <tr><td>${esc(L(t('功能性下丘脑性闭经','Functional hypothalamic amenorrhoea')))}</td><td>${esc(L(t('运动量大、体重下降，无高雄','High training load, weight loss, no hyperandrogenism')))}</td><td>${esc(L(t('病史','History')))}</td></tr>
-      <tr><td>${esc(L(t('非经典型 CAH','Non-classic CAH')))}</td><td>${esc(L(t('家族史、阴毛腋毛早现','Family history, early pubic hair')))}</td><td>17-OHP</td></tr>
-      <tr><td>${esc(L(t('库欣综合征','Cushing’s syndrome')))}</td><td>${esc(L(t('满月脸、紫纹、近端肌无力','Moon face, purple striae, proximal weakness')))}</td><td>${esc(L(t('皮质醇','Cortisol')))}</td></tr>
-      <tr><td>${esc(L(t('分泌雄激素的肿瘤','Androgen-secreting tumour')))}</td><td>${esc(L(t('数月内迅速男性化','Rapid virilisation over months')))}</td><td>${esc(L(t('睾酮显著升高 + 影像','Very high testosterone + imaging')))}</td></tr>
-      <tr><td>${esc(L(t('围绝经期','Perimenopause')))}</td><td>${esc(L(t('40 岁以上，周期波动，潮热盗汗','Over 40, varying cycles, flushes and sweats')))}</td><td>${esc(L(t('病史','History')))}</td></tr>
-    </tbody></table></div>
-    <p class="muted" style="margin-top:12px">${esc(L(t('体型不作为诊断依据。瘦型 PCOS 同样常见。PCOS 不会随绝经消失。','Body size is not a diagnostic criterion; lean PCOS is common. PCOS does not end at menopause.')))}</p>`}},
-  orders:{tab:t('检查项目','Orders'), html(){return `
-    <div class="scroll"><table class="tbl"><thead><tr><th>${esc(L(t('项目','Item')))}</th><th>${esc(L(t('耗时','Time')))}</th><th>${esc(L(t('用途','Purpose')))}</th></tr></thead><tbody>
+    <h3>${esc(L(t('游戏结束','Game over')))}</h3>
+    <p>${esc(L(t('交不起房租，你会被赶出家门；被投诉 3 次，你会被辞退。看看你能撑几天。','Can’t pay the rent and you’re evicted. Three complaints and you’re fired. How long can you last?')))}</p>`}},
+  pcos:{tab:t('认识 PCOS','About PCOS'),html(){return `
+    <p class="lead">${esc(L(T.signsLead))}</p>
+    <h3>${esc(L(t('常见信号','Common signs')))}</h3>
+    <ul class="signs">${T.signList.map(s=>`<li>${esc(L(s))}</li>`).join('')}</ul>
+    <p><b>${esc(L(T.signsAction))}</b></p>
+    <h3>${esc(L(t('几个常见误会','Common mix-ups')))}</h3>
+    <ul class="signs">
+      <li>${esc(L(t('瘦的人也会有 PCOS。','Slim women get PCOS too.')))}</li>
+      <li>${esc(L(t('B 超看到“多囊”不等于有 PCOS，很多健康女性也这样。','“Polycystic” on a scan is not the same as PCOS; many healthy women look like that.')))}</li>
+      <li>${esc(L(t('月经不来，先验孕。','Period late? Pregnancy test first.')))}</li>
+      <li>${esc(L(t('甲状腺问题、泌乳素太高、运动过量、更年期，也会让月经乱，所以要让医生查清楚。','Thyroid problems, high prolactin, heavy exercise and menopause can also upset periods, so let a doctor check.')))}</li>
+      <li>${esc(L(t('PCOS 不只是月经问题，也会让血糖、血压更容易出问题。','PCOS is not only about periods; it also raises the risk of high blood sugar and blood pressure.')))}</li>
+    </ul>`}},
+  tests:{tab:t('问诊和检查','Questions and tests'),html(){return `
+    <div class="scroll"><table class="tbl"><thead><tr><th>${esc(L(t('项目','Item')))}</th><th>${esc(L(t('时间','Time')))}</th><th>${esc(L(t('能知道什么','What it tells you')))}</th></tr></thead><tbody>
     ${CLUES.map(c=>`<tr><td>${esc(L(c.n))}</td><td class="n">${c.c} ${esc(L(T.min))}</td><td>${esc(L(c.d))}</td></tr>`).join('')}
-    <tr><td>${esc(L(t('追问','Follow-up question')))}</td><td class="n">1 ${esc(L(T.min))}</td><td>${esc(L(t('针对个别病人的补充问诊','Targeted extra question for a specific patient')))}</td></tr>
+    <tr><td>${esc(L(t('追问','Follow-up question')))}</td><td class="n">1 ${esc(L(T.min))}</td><td>${esc(L(t('有些重要的事，病人不会主动说','Some important things patients won’t mention unless asked')))}</td></tr>
     </tbody></table></div>`}}
 };
 
 /* ---------- tutorial ---------- */
-const COACH = {name:t('方主任','Dr. Fang'), role:t('带教老师','Supervising consultant')};
-const TUT = [
-  {sel:null, h:t('上岗前，交代几句','Before you start'), p:t('我是方主任，今天带你出门诊。每天 3 位病人，门诊时间有限。我们的任务是找出被漏诊的 PCOS，也不能把别的病当成 PCOS。','I’m Dr. Fang, supervising your clinic today. Three patients a day and limited clinic time. Our job is to find the PCOS others have missed, without mistaking other conditions for it.')},
-  {sel:'.shop', h:t('检查单','The order sheet'), p:t('左边是检查单。问诊和查体耗时短，实验室和影像检查耗时长。时间不够做全套，开单前先想清楚：这项检查能回答什么问题？','On the left is the order sheet. History and examination are quick; labs and imaging take longer. There is no time for everything, so before each order ask what question it answers.')},
-  {sel:'.chart', h:t('病历','The chart'), p:t('中间是病历。结果按检验单格式记录，异常结果标 H。注意追问项，有些关键信息病人不会主动说。','The chart is in the middle. Results appear like a lab report, with abnormal values flagged H. Watch for follow-up questions: some key facts patients won’t volunteer.')},
-  {sel:'.notes', h:t('诊断笔记','Your notes'), p:t('对照鹿特丹标准，自己勾选满足了哪几项。下面的排除性检查会自动记录：妊娠试验、TSH、泌乳素。确诊 PCOS 之前，这三项要做全。','Tick the Rotterdam criteria she meets. Exclusion tests are tracked below: pregnancy test, TSH and prolactin. Complete all three before diagnosing PCOS.')},
-  {sel:'.vpanel', h:t('判定','The verdict'), p:t('右边作出判定。提交后不能修改，结果在当天结算时公布。','Record your verdict on the right. It cannot be changed, and results are released at the end-of-day review.')},
-  {sel:null, h:t('最后两点','Two last things'), p:t('第一，PCOS 是排除性诊断。第二，体型不是诊断依据，瘦的人也会有 PCOS。好了，开始接诊吧。','First, PCOS is a diagnosis of exclusion. Second, body size is not a criterion; slim women get PCOS too. Now, let’s see the first patient.')}
+const COACH={name:t('方主任','Dr. Fang'),role:t('带你的老医生','Your senior doctor')};
+const TUT=[
+  {sel:null,h:t('欢迎上班','Welcome aboard'),p:t('我是方主任。你是刚来的医生，每天看 3 个病人。建议对了拿工资；漏掉病人会被投诉。晚上还要交房租，别被赶出家门哦。','I’m Dr. Fang. You’re the new doctor, seeing three patients a day. Right advice earns pay; missed patients mean complaints. And rent’s due every night, so don’t get evicted.')},
+  {sel:'.shop',h:t('问问题、做检查','Ask and test'),p:t('左边是能问的问题和能做的检查。每一项都花时间，一天就这么多，挑最有用的。','On the left are questions and tests. Each takes time, and the day is short, so pick the useful ones.')},
+  {sel:'.chart',h:t('病历','Her notes'),p:t('结果会记在这里，不正常的会标红。有些重要的事病人不会主动说，记得“追问”。','Results land here; anything unusual is marked. Some things patients won’t say unless you ask, so use follow-up questions.')},
+  {sel:'.notes',h:t('信号小本子','The sign notebook'),p:t('数一数她有几个 PCOS 信号。有 2 个以上，就要想到 PCOS。还有，月经不来，先验孕。','Count her PCOS signs. Two or more? Think PCOS. And if her period is late, test for pregnancy first.')},
+  {sel:'.vpanel',h:t('给建议','Give advice'),p:t('最后在右边给她一个建议。给了就不能改，晚上下班时揭晓结果。','Give your advice on the right. You can’t change it, and you’ll find out at closing time.')},
+  {sel:null,h:t('最后一句','One last thing'),p:t('很多女性把这些信号当成“太累了”“压力大”“月经不准很正常”。你的工作，就是别让她们被忽视。去吧！','Many women brush these signs off as tiredness, stress, or “normal” periods. Your job is to make sure they’re not overlooked. Off you go!')}
 ];
 
-/* ---------- state & storage ---------- */
-const store = {
-  get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},
-  del(k){try{localStorage.removeItem(k)}catch(e){}}
-};
-function fresh(lang,skin){return {lang:lang||'zh',skin:skin||'light',screen:'title',diff:1,day:0,days:[],famDay:-1,bulletins:[],cur:null,time:0,score:0,rev:{},order:{},notes:{},pick:{},verdicts:{},modal:null,mtab:'flow',tut:null,msg:null}}
-const PREF = store.get('unseen-prefs')||{};
-let S = fresh(PREF.lang,PREF.skin);
-const hot = window.claude && window.claude.hot;
-if(hot && hot.data && hot.data.S) S = hot.data.S;
-if(hot && hot.snapshot) hot.snapshot(()=>({S}));
-const bests = ()=> store.get('unseen-best2')||{};
-const saved = ()=>{const s=store.get('unseen-save2');return s&&['day','play','settle'].includes(s.screen)?s:null};
+/* ---------- state ---------- */
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+function fresh(lang,skin){return {lang:lang||'zh',skin:skin||'light',screen:'title',diff:0,day:0,queue:[],used:[],famDone:false,famDay:0,todayIds:[],bulletin:null,cur:null,time:0,money:0,complaints:0,dayLog:null,stats:{seen:0,right:0,caught:0,missed:0},rev:{},order:{},notes:{},pick:{},verdicts:{},famResults:{},endReason:null,modal:null,mtab:'play',tut:null,msg:null,copyMsg:null}}
+const PREF=store.get('unseen-prefs')||{};
+let S=fresh(PREF.lang,PREF.skin);
+const hot=window.claude&&window.claude.hot;
+if(hot&&hot.data&&hot.data.S) S=hot.data.S;
+if(hot&&hot.snapshot) hot.snapshot(()=>({S}));
+const SAVE='unseen-save3', BEST='unseen-best3';
+const bests=()=>store.get(BEST)||{};
+const saved=()=>{const s=store.get(SAVE);return s&&['day','play','night'].includes(s.screen)?s:null};
 function persist(){
-  if(['day','play','settle'].includes(S.screen)){const {modal,mtab,tut,msg,skin,lang,...rest}=S;store.set('unseen-save2',rest)}
-  if(S.screen==='end') store.del('unseen-save2');
+  if(['day','play','night'].includes(S.screen)){const {modal,mtab,tut,msg,skin,lang,copyMsg,...rest}=S;store.set(SAVE,rest)}
+  if(S.screen==='end') store.del(SAVE);
 }
-const savePrefs = ()=>store.set('unseen-prefs',{lang:S.lang,skin:S.skin});
+const savePrefs=()=>store.set('unseen-prefs',{lang:S.lang,skin:S.skin});
+const D=()=>DIFF[S.diff];
+const rentFor=day=>D().rent+RENT_STEP*Math.floor((day-1)/RENT_EVERY);
+const revOf=id=>(S.rev[id] ||= []);
+const today=()=>S.todayIds.map(id=>CASE[id]);
+const dayLabel=n=>fill(L(T.day),{n});
 
-/* ---------- run setup: random draw ---------- */
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function newRun(diff){
-  const D=DIFF[diff];
-  const pool=shuffle(CASES.filter(c=>c.d===diff&&!c.fam).map(c=>c.id));
-  const days=[];let famDay=-1;
-  if(D.family) famDay=Math.floor(Math.random()*DAYS);
-  for(let i=0;i<DAYS;i++){
-    if(i===famDay) days.push(['f1','f2','f3']);
-    else days.push(pool.splice(0,3));
+function poolIds(){return CASES.filter(c=>c.d===S.diff&&!c.fam).map(c=>c.id)}
+function drawDay(){
+  if(D().family&&!S.famDone&&S.day+1===S.famDay){S.famDone=true;return['f1','f2','f3']}
+  const out=[];
+  while(out.length<3){
+    if(!S.queue.length){const recent=new Set(S.used.slice(-3));S.queue=shuffle(poolIds()).sort((a,b)=>recent.has(a)-recent.has(b))}
+    const id=S.queue.shift(); if(!out.includes(id)) out.push(id);
   }
-  const bl=shuffle(BULLETIN);
-  Object.assign(S,{screen:'day',diff,day:0,days,famDay,bulletins:days.map((_,i)=>i===famDay?FAMILY_BULLETIN:bl[i%bl.length]),cur:null,time:D.time,score:0,rev:{},order:{},notes:{},pick:{},verdicts:{}});
+  S.used.push(...out); return out;
 }
-
-const app = document.getElementById('app');
-const D = ()=>DIFF[S.diff];
-const today = ()=>(S.days[S.day]||[]).map(id=>CASE[id]);
-const revOf = id=>(S.rev[id] ||= []);
-const workup = id=>['preg','tsh','prl'].every(k=>revOf(id).includes(k));
-const dayLabel = n=>L(T.day).replace('{n}',n);
+function startDay(){
+  S.day++; S.todayIds=drawDay(); S.rev={}; S.order={}; S.notes={}; S.pick={}; S.verdicts={}; S.bulletin=S.todayIds[0]==='f1'?FAMILY_BULLETIN:BULLETIN[Math.floor(Math.random()*BULLETIN.length)];
+  S.time=D().time; S.cur=null; S.screen='day';
+}
+function newRun(diff){
+  const lang=S.lang,skin=S.skin; S=fresh(lang,skin); S.diff=diff;
+  S.money=D().money; S.famDay=D().family?2+Math.floor(Math.random()*3):0;
+  startDay();
+}
 
 /* ---------- pixel art ---------- */
 function drawOvary(cv,scale,phase){
-  const W=26,Hh=20;cv.width=W*scale;cv.height=Hh*scale;
-  const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);
+  const W=26,Hh=20;cv.width=W*scale;cv.height=Hh*scale;const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);
   const P=S.skin==='dark'?{body:'#E8729F',rim:'#C4567F',fol:'#5A2238',lit:'#FFE3EE',eye:'#1A0E14'}:{body:'#E7759F',rim:'#B8406B',fol:'#6E2140',lit:'#FFFFFF',eye:'#231B21'};
   const cx=12.5,cy=9,rx=11,ry=8,px=(i,j,c)=>{x.fillStyle=c;x.fillRect(i*scale,j*scale,scale,scale)};
   for(let j=0;j<Hh;j++)for(let i=0;i<W;i++){const d=((i-cx)/rx)**2+((j-cy)/ry)**2;if(d<=1)px(i,j,d>0.82?P.rim:P.body)}
@@ -731,25 +738,22 @@ function drawOvary(cv,scale,phase){
 function drawCoach(cv){
   const s=4,G=['................','.....######.....','....########....','...##########...','...#ssssssss#...','...sweswwswes...','...ssssssssss...','....sssmmsss....','.....ssssss.....','...wwwwwwwwww...','..wwwwwkkwwwww..','..wwwwwkkwwwww..','..wwwwkwwkwwww..','..wwwwwwwwwwww..','..wwwwwwwwwwww..','................'];
   const col={'#':'#2B2230',s:'#E9C2A6',e:'#1A0E14',w:'#EDE7F3',m:'#B0546F',k:'#4B8F9C'};
-  cv.width=64;cv.height=64;const x=cv.getContext('2d');
-  G.forEach((r,j)=>[...r].forEach((ch,i)=>{if(col[ch]){x.fillStyle=col[ch];x.fillRect(i*s,j*s,s,s)}}));
+  cv.width=64;cv.height=64;const x=cv.getContext('2d');G.forEach((r,j)=>[...r].forEach((ch,i)=>{if(col[ch]){x.fillStyle=col[ch];x.fillRect(i*s,j*s,s,s)}}));
 }
 let animT=null;
-function startMascot(){
-  clearInterval(animT);const cv=document.getElementById('ovary');if(!cv)return;
-  let ph=0;drawOvary(cv,12,ph);
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  animT=setInterval(()=>{if(!document.getElementById('ovary'))return clearInterval(animT);drawOvary(cv,12,++ph)},700);
-}
+function startMascot(){clearInterval(animT);const cv=document.getElementById('ovary');if(!cv)return;let ph=0;drawOvary(cv,12,ph);if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;animT=setInterval(()=>{if(!document.getElementById('ovary'))return clearInterval(animT);drawOvary(cv,12,++ph)},700)}
 
 /* ---------- views ---------- */
+const pips=n=>Array.from({length:MAX_COMPLAINTS},(_,i)=>`<i class="pip ${i<n?'on':''}"></i>`).join('');
 function bar(){
-  const pct=Math.max(0,Math.round(S.time/D().time*100)),inPlay=S.screen==='play';
+  const inPlay=S.screen==='play', pct=Math.max(0,Math.round(S.time/D().time*100));
   return `<header class="bar"><div class="wrap">
     <div class="logo">看见她 <span class="tag">Unseen</span></div>
-    <span class="tag">${esc(L(D().name))} · ${esc(dayLabel(S.day+1))} / ${DAYS}</span><span class="sp"></span>
+    <span class="tag">${esc(L(D().name))} · ${esc(dayLabel(S.day))}</span><span class="sp"></span>
     ${inPlay?`<div class="stat"><span class="tag">${esc(L(T.time))}</span><span class="val">${S.time} ${esc(L(T.min))}</span><div class="meter"><i style="width:${pct}%"></i></div></div>`:''}
-    <div class="stat"><span class="tag">${esc(L(T.score))}</span><span class="val">${S.score}</span></div>
+    <div class="stat"><span class="tag">${esc(L(T.money))}</span><span class="val">RM ${S.money}</span></div>
+    <div class="stat"><span class="tag">${esc(L(T.rent))}</span><span class="val">RM ${rentFor(S.day)}</span></div>
+    <div class="stat"><span class="tag">${esc(L(T.complaints))}</span><span class="pips">${pips(S.complaints)}</span></div>
     <button class="linkbtn" data-modal="manual">${esc(L(T.manual))}</button>
     <button class="linkbtn" data-act="home">${esc(L(T.home))}</button>
     <button class="gear" data-modal="settings" aria-label="${esc(L(T.settings))}">⚙</button>
@@ -760,52 +764,49 @@ const foot=()=>`<div class="wrap foot">${esc(L(T.disclaimer))}<br>${esc(L(T.priv
 function vTitle(){
   const sv=saved(),b=bests();
   app.innerHTML=`<main class="wrap title">
-    <div class="top"><div class="logo">■ <span class="tag">Unseen / Clinic · v2</span></div><span class="sp"></span>
-      <button class="gear" data-modal="settings" aria-label="${esc(L(T.settings))}">⚙</button></div>
-    <div class="mid">
-      <div><h1 class="big">看见她<small>UNSEEN</small></h1>
-        <ul class="menu">
-          <li><button data-act="new">${esc(L(T.newGame))}</button></li>
-          <li><button data-act="continue" ${sv?'':'disabled'}>${esc(L(T.cont))}${sv?`<span class="sub">${esc(L(DIFF[sv.diff].name))} · ${esc(dayLabel(sv.day+1))}</span>`:''}</button></li>
-          <li><button data-modal="manual">${esc(L(T.manual))}</button></li>
-          <li><button data-act="tutorial">${esc(L(T.tutorial))}</button></li>
-          <li><button data-modal="settings">${esc(L(T.settings))}</button></li>
-        </ul></div>
-      <div class="mascot"><canvas id="ovary" width="312" height="240" aria-hidden="true"></canvas></div>
-    </div>
-    <div class="bottom"><span>${DIFF.map(d=>`${esc(L(d.name))} ${esc(L(T.best))} <b>${b[d.k]??0}</b>`).join(' · ')}</span><span>${esc(L(T.disclaimer))}</span><span>${esc(L(T.privacy))}</span></div>
+    <div class="top"><div class="logo">■ <span class="tag">Unseen / Clinic · v3</span></div><span class="sp"></span><button class="gear" data-modal="settings" aria-label="${esc(L(T.settings))}">⚙</button></div>
+    <div class="mid"><div><h1 class="big">看见她<small>UNSEEN</small></h1>
+      <ul class="menu">
+        <li><button data-act="new">${esc(L(T.newGame))}</button></li>
+        <li><button data-act="continue" ${sv?'':'disabled'}>${esc(L(T.cont))}${sv?`<span class="sub">${esc(L(DIFF[sv.diff].name))} · ${esc(fill(L(T.day),{n:sv.day}))}</span>`:''}</button></li>
+        <li><button data-modal="manual">${esc(L(T.manual))}</button></li>
+        <li><button data-act="tutorial">${esc(L(T.tutorial))}</button></li>
+        <li><button data-modal="settings">${esc(L(T.settings))}</button></li>
+      </ul></div>
+      <div class="mascot"><canvas id="ovary" width="312" height="240" aria-hidden="true"></canvas></div></div>
+    <div class="bottom"><span>${DIFF.map(d=>`${esc(L(d.name))} ${esc(L(T.bestDays))} <b>${esc(fill(L(T.days),{n:b[d.k]||0}))}</b>`).join(' · ')}</span><span>${esc(L(T.disclaimer))}</span><span>${esc(L(T.privacy))}</span></div>
   </main>`;
   startMascot();
 }
 
 function vDiff(){
   const b=bests();
-  app.innerHTML=`<main class="wrap diffpage">
-    <h2>${esc(L(T.chooseDiff))}</h2>
-    <p class="muted" style="margin:6px 0 0">${esc(L(t('同一套诊断标准，不同的病人和门诊压力。','The same criteria, different patients and pressure.')))}</p>
+  app.innerHTML=`<main class="wrap diffpage"><h2>${esc(L(T.chooseDiff))}</h2>
     <div class="diffgrid">${DIFF.map((d,i)=>`<div class="dcard" aria-selected="${S.diff===i}">
-      <div class="dn">${esc(L(d.name))}</div><div class="dl">${esc(L(d.level))}</div>
-      <p>${esc(L(d.desc))}</p>
-      <dl><dt>${esc(L(t('每日门诊','Daily time')))}</dt><dd>${d.time} ${esc(L(T.min))}</dd>
-          <dt>${esc(L(t('门诊日','Clinic days')))}</dt><dd>${DAYS} × 3</dd>
-          <dt>${esc(L(t('判定','Verdict')))}</dt><dd>${esc(L(d.verdict))}</dd>
-          <dt>${esc(L(T.best))}</dt><dd>${b[d.k]??0}</dd></dl>
-      <span class="sp"></span>
-      <button class="pick" data-diff="${i}">${esc(L(S.diff===i?T.chosen:T.choose))}</button></div>`).join('')}</div>
-    <div class="diffbar"><span class="rules">${esc(L(t('每天从病例库中随机抽取 3 位病人。判完 3 位后点击“结束门诊”统一结算。','Three patients are drawn at random each day. After all three, close the clinic for the review.')))}</span>
-      <span style="display:flex;gap:10px"><button class="btn ghost" data-act="home">${esc(L(T.back))}</button><button class="btn" data-act="go">${esc(L(T.start))} · ${esc(L(DIFF[S.diff].name))}</button></span></div>
+      <div class="dn">${esc(L(d.name))}</div><div class="dl">${esc(L(d.tag))}</div><p>${esc(L(d.desc))}</p>
+      <dl><dt>${esc(L(t('起始存款','Starting savings')))}</dt><dd>RM ${d.money}</dd>
+        <dt>${esc(L(t('每晚房租','Nightly rent')))}</dt><dd>RM ${d.rent} ${esc(L(t('起，每 3 天涨 50','and +50 every 3 days')))}</dd>
+        <dt>${esc(L(t('每天时间','Time per day')))}</dt><dd>${d.time} ${esc(L(T.min))}</dd>
+        <dt>${esc(L(t('投诉上限','Complaint limit')))}</dt><dd>${MAX_COMPLAINTS}</dd>
+        <dt>${esc(L(T.bestDays))}</dt><dd>${esc(fill(L(T.days),{n:b[d.k]||0}))}</dd></dl>
+      <span class="sp"></span><button class="pick" data-diff="${i}">${esc(L(S.diff===i?T.chosen:T.choose))}</button></div>`).join('')}</div>
+    <div class="diffbar"><span class="rules">${esc(L(t('每天随机来 3 位病人。建议对了拿工资；漏掉病人会被投诉。交不起房租或被投诉 3 次，游戏结束。','Three random patients a day. Right advice earns pay; missed patients mean complaints. Run out of rent money or get three complaints and it’s over.')))}</span>
+      <span style="display:flex;gap:10px"><button class="btn ghost" data-act="home">${esc(L(T.back))}</button><button class="btn" data-act="go">${esc(L(T.startGame))} · ${esc(L(DIFF[S.diff].name))}</button></span></div>
   </main>`;
 }
 
 function vDay(){
-  const d=D();
   app.innerHTML=bar()+`<main class="wrap"><section class="stage-intro">
-    <div class="tag" style="color:var(--accent)">${esc(L(d.name))} · ${esc(L(d.level))}</div>
-    <h2>${esc(dayLabel(S.day+1))}</h2>
-    <div class="bulletin">${esc(L(S.bulletins[S.day]))}</div>
-    ${S.day===0?`<div style="margin-top:20px">${d.intro.map(p=>`<p>${esc(L(p))}</p>`).join('')}</div>
-      ${S.diff===0?`<div class="crit">${['c1','c2','c3'].map((k,i)=>`<div><b>0${i+1}</b>${esc(L(T[k]))}</div>`).join('')}</div>`:''}`:''}
-    <p class="tag" style="margin-top:18px">${d.time} ${esc(L(T.min))} · 3 patients</p>
+    <div class="tag" style="color:var(--accent)">${esc(L(D().name))}</div>
+    <h2>${esc(dayLabel(S.day))}</h2>
+    <div class="bulletin">${esc(L(S.bulletin))}</div>
+    <div class="daystats">
+      <div><span class="tag">${esc(L(T.money))}</span><b>RM ${S.money}</b></div>
+      <div><span class="tag">${esc(L(T.rent))}</span><b>RM ${rentFor(S.day)}</b></div>
+      <div><span class="tag">${esc(L(T.complaints))}</span><span class="pips">${pips(S.complaints)}</span></div>
+      <div><span class="tag">${esc(L(T.time))}</span><b>${D().time} ${esc(L(T.min))}</b></div>
+    </div>
+    ${S.day===1?`<p>${esc(L(D().desc))}</p>`:''}
     <button class="btn" data-act="begin">${esc(L(T.begin))}</button>
   </section></main>`+foot();
 }
@@ -813,154 +814,171 @@ function vDay(){
 function vPlay(){
   const list=today();
   if(!S.cur||!list.find(c=>c.id===S.cur)) S.cur=list[0].id;
-  const c=CASE[S.cur],rev=revOf(c.id),judged=!!S.verdicts[c.id],multi=D().multi;
+  const c=CASE[S.cur],rev=revOf(c.id),judged=!!S.verdicts[c.id];
   const shop=GROUPS.map(g=>{
     let items=CLUES.filter(x=>x.g===g.g).map(x=>{const done=rev.includes(x.k),cant=!done&&(S.time<x.c||judged);
-      return `<button class="clue ${done?'done':''}" data-clue="${x.k}" ${done||cant?'disabled':''} title="${esc(L(x.d))}"><span>${esc(L(x.n))}</span><span class="c">${done?esc(L(T.resulted)):x.c+' '+esc(L(T.min))}</span></button>`}).join('');
+      return `<button class="clue ${done?'done':''}" data-clue="${x.k}" ${done||cant?'disabled':''} title="${esc(L(x.d))}"><span>${esc(L(x.n))}</span><span class="c">${done?esc(L(T.doneMark)):x.c+' '+esc(L(T.min))}</span></button>`}).join('');
     if(g.g==='hx'&&c.asks) items+=c.asks.map((a,i)=>{const k='ask'+i,done=rev.includes(k),cant=!done&&(S.time<1||judged);
-      return `<button class="clue ${done?'done':''}" data-clue="${k}" ${done||cant?'disabled':''}><span class="askq">${esc(L(T.ask))}${esc(L(a.q))}</span><span class="c">${done?esc(L(T.resulted)):'1 '+esc(L(T.min))}</span></button>`}).join('');
+      return `<button class="clue ${done?'done':''}" data-clue="${k}" ${done||cant?'disabled':''}><span class="askq">${esc(L(T.ask))}${esc(L(a.q))}</span><span class="c">${done?esc(L(T.doneMark)):'1 '+esc(L(T.min))}</span></button>`}).join('');
     return `<div class="grp"><div class="gname">${esc(L(g.n))}</div>${items}</div>`;
   }).join('');
   const rows=(S.order[c.id]||[]).map(k=>{let name,val;
     if(k.startsWith('ask')){const a=c.asks[+k.slice(3)];name=L(T.asked)+' · '+L(a.q);val=a.a}
     else{name=L(CLUE[k].n);val=(c.clues&&c.clues[k])||DEF[k]}
-    return `<div class="row ${val.f?'abn':''}"><span class="k">${esc(name)}</span><span class="v">${esc(L(val))}</span><span class="h">${val.f?'H':''}</span></div>`}).join('');
+    return `<div class="row ${val.f?'abn':''}"><span class="k">${esc(name)}</span><span class="v">${esc(L(val))}</span><span class="h">${val.f?'!':''}</span></div>`}).join('');
   const notes=S.notes[c.id]||[0,0,0];
-  const ruled=['preg','tsh','prl'].map(k=>`<span class="chip auto ${rev.includes(k)?'on':''}">${rev.includes(k)?'✓ ':''}${esc(L(CLUE[k].n))}</span>`).join('');
   const queue=list.map(p=>{const d=!!S.verdicts[p.id];return `<button class="q ${d?'judged':''}" data-pt="${p.id}" aria-current="${p.id===c.id}"><span class="ava">${esc(p.ini)}</span><span class="n">${esc(L(p.name))}<br><span class="muted" style="font-size:12px">${p.age} ${esc(L(T.yrs))} · ${esc(L(p.job))}</span></span><span class="s">${esc(L(d?T.done:T.waiting))}</span></button>`}).join('');
-  const opts=multi?VM:V1,pick=S.pick[c.id]||(multi?[]:null),on=k=>multi?pick.includes(k):pick===k;
-  const verdict=judged?`<div class="judged-msg">${esc(L(T.judged))}</div>`:
-    `<div class="verdict"><div class="vgrid">${opts.map(o=>`<button class="vopt ${multi?'small':'single'}" data-v="${o.k}" aria-pressed="${on(o.k)}"><span class="box"></span>${esc(L(o.n))}</button>`).join('')}</div>
-     <button class="btn" data-act="confirm" ${(multi?pick.length:pick)?'':'disabled'}>${esc(L(T.submit))}</button></div>`;
+  const pick=S.pick[c.id]||null;
+  const verdict=judged?`<div class="judged-msg">${esc(L(T.judged))}</div>`:`<div class="verdict"><div class="vgrid">${V.map(o=>`<button class="vopt single" data-v="${o.k}" aria-pressed="${pick===o.k}"><span class="box"></span>${esc(L(o.n))}</button>`).join('')}</div>
+     <button class="btn" data-act="confirm" ${pick?'':'disabled'}>${esc(L(T.submit))}</button></div>`;
   const allDone=list.every(p=>S.verdicts[p.id]),nxt=list.find(p=>!S.verdicts[p.id]);
   const nextBtn=allDone?`<div class="next"><button class="btn" style="width:100%" data-act="settle">${esc(L(T.settleBtn))}</button></div>`:(judged&&nxt?`<div class="next"><button class="btn ghost" style="width:100%" data-pt="${nxt.id}">${esc(L(T.nextPt))} →</button></div>`:'');
   app.innerHTML=bar()+`<main class="wrap play">
-    <aside class="panel shop"><h3 class="tag">${esc(L(T.orders))}</h3>${shop}</aside>
+    <aside class="panel shop"><h3 class="tag">${esc(L(T.asks))}</h3>${shop}</aside>
     <section class="panel chart">
       <div class="who"><span class="ava">${esc(c.ini)}</span><div style="flex:1;min-width:0"><h2>${esc(L(c.name))}</h2><div class="meta">${c.age} ${esc(L(T.yrs))} · ${esc(L(c.job))}</div></div></div>
-      <div class="speech"><small>${esc(L(T.complaint))}</small>${esc(L(c.say))}</div>
+      <div class="speech"><small>${esc(L(T.says))}</small>${esc(L(c.say))}</div>
       ${c.file?`<div class="file"><span class="tag">${esc(L(T.file))}</span><br>${esc(L(c.file))}</div>`:''}
-      <div class="report"><div class="head tag"><span>${esc(L(T.item))}</span><span>${esc(L(T.result))}</span><span>Flag</span></div>${rows||`<div class="empty">${esc(L(T.noclue))}</div>`}</div>
+      <div class="report"><div class="head tag"><span>${esc(L(T.item))}</span><span>${esc(L(T.result))}</span><span></span></div>${rows||`<div class="empty">${esc(L(T.noclue))}</div>`}</div>
       <div class="notes"><span class="tag">${esc(L(T.notes))}</span>
-        <div class="chips">${['c1','c2','c3'].map((k,i)=>`<button class="chip" data-note="${i}" aria-pressed="${!!notes[i]}">${esc(L(T[k]))}</button>`).join('')}</div>
-        <span class="tag" style="margin-top:6px">${esc(L(T.ruled))}</span><div class="chips">${ruled}</div></div>
+        <div class="chips">${['s1','s2','s3'].map((k,i)=>`<button class="chip" data-note="${i}" aria-pressed="${!!notes[i]}">${esc(L(T[k]))}</button>`).join('')}
+          <span class="chip auto ${rev.includes('preg')?'on':''}">${rev.includes('preg')?'✓ ':''}${esc(L(T.pregChip))}</span></div>
+        <span class="muted" style="font-size:13px">${esc(L(T.notesHint))}</span></div>
     </section>
     <aside class="side">
       <div class="panel"><h3 class="tag">${esc(L(T.today))}</h3>${queue}${nextBtn}</div>
-      <div class="panel vpanel"><h3 class="tag">${esc(L(multi?T.verdictMulti:T.verdict))}</h3>${verdict}</div>
+      <div class="panel vpanel"><h3 class="tag">${esc(L(T.verdict))}</h3>${verdict}</div>
     </aside></main>`+foot();
 }
 
 /* ---------- scoring ---------- */
 function judge(c,choice){
-  const r={pts:0,notes:[],exact:false};
-  if(!Array.isArray(c.answer)){
-    r.exact=choice===c.answer;r.pts=r.exact?100:(c.red?-200:-100);
-    if(r.exact&&choice==='pcos'&&!workup(c.id)){r.pts=50;r.notes.push('incomplete')}
-    return r;
+  const r={pay:0,fine:0,complaint:0,result:'wrong',notes:[]};
+  if(choice===c.ans){r.result='right';r.pay=PAY;if(choice==='pcos'&&!revOf(c.id).includes('preg')){r.pay=PAY/2;r.notes.push('preg')}}
+  else if(c.part&&choice===c.part){r.result='part';r.pay=PART_PAY}
+  else{
+    r.fine=c.red?RED_FINE:FINE;
+    if(c.red||(c.ans==='pcos'&&choice!=='pcos')||(choice==='fine'&&c.ans!=='fine')) r.complaint=1;
   }
-  const req=new Set(c.answer),bon=new Set(c.bonus||[]),ok=new Set(c.ok||[]),sel=new Set(choice);
-  const extra=[...sel].filter(k=>!req.has(k)&&!bon.has(k)&&!ok.has(k)),miss=[...req].filter(k=>!sel.has(k));
-  if(extra.length){r.pts=c.red?-200:-100;r.notes.push('overdx')}
-  else if(miss.length){r.pts=c.red&&miss.some(k=>k!=='pcos')?-200:50;r.notes.push('partial')}
-  else{r.pts=100;r.exact=true}
-  if(sel.has('pcos')&&(req.has('pcos')||bon.has('pcos'))&&!c.noWorkup&&!workup(c.id)&&r.pts>0){r.pts=Math.round(r.pts/2);r.notes.push('incomplete')}
-  if(r.exact&&[...bon].some(k=>sel.has(k))){r.pts+=50;r.notes.push('bonus')}
   return r;
 }
-const NOTE={
-  incomplete:t('排除性检查不完整：确诊 PCOS 前未完成妊娠试验、TSH 和泌乳素，得分减半。','Incomplete exclusion: pregnancy test, TSH and prolactin were not all done before diagnosing PCOS. Score halved.'),
-  partial:t('漏诊。','A diagnosis was missed.'),
-  overdx:t('作出了病人并不存在的诊断。','You recorded a diagnosis she does not have.'),
-  bonus:t('额外加分：你看出了她一直未被诊断的 PCOS。','Bonus: you recognised her never-diagnosed PCOS.')
-};
-const fmt=ch=>Array.isArray(ch)?ch.map(k=>L(VNAME[k])).join(' + '):L(VNAME[ch]);
 
-function vSettle(){
-  const list=today();
+function vNight(){
+  const g=S.dayLog,list=today();
   const rows=list.map(c=>{const v=S.verdicts[c.id];
-    const ans=Array.isArray(c.answer)?fmt(c.answer)+(c.bonus?` (+ ${fmt(c.bonus)})`:''):fmt(c.answer);
-    return `<div class="lrow"><div><b>${esc(L(c.name))}</b>${c.red?` <span class="stamp" style="margin-left:6px">RED FLAG</span>`:''}
-      <div class="sub">${esc(L(T.you))}: ${esc(fmt(v.choice))} · ${esc(L(T.right))}: ${esc(ans)}</div>
-      ${v.notes.map(n=>`<div class="note ${n==='bonus'?'good':''}">${esc(L(NOTE[n]))}</div>`).join('')}</div>
-      <div class="pts ${v.pts>=0?'plus':'minus'}">${v.pts>0?'+':''}${v.pts}</div>
-      <details class="card" ${v.exact&&!v.notes.filter(n=>n!=='bonus').length?'':'open'}><summary>${esc(L(T.caseReview))}</summary><dl>
-      ${['truth','key','trap','outcome'].map(k=>`<dt>${esc(L(T[k]))}</dt><dd>${esc(L(c.card[k]))}</dd>`).join('')}</dl></details></div>`}).join('');
-  const day=list.reduce((s,c)=>s+S.verdicts[c.id].pts,0),last=S.day===DAYS-1;
+    const sign=v.result==='right'?'plus':(v.result==='part'?'plus':'minus');
+    const amt=v.pay?`+RM ${v.pay}`:`−RM ${v.fine}`;
+    return `<div class="lrow"><div><b>${esc(L(c.name))}</b>${c.red?` <span class="stamp" style="margin-left:6px">${esc(L(T.red))}</span>`:''}
+      <div class="sub">${esc(L(T.yourAdvice))}: ${esc(L(VNAME[v.choice]))} · ${esc(L(T.answer))}: ${esc(L(VNAME[c.ans]))}</div>
+      ${v.complaint?`<div class="note">${esc(L(T.complaintNew))}</div>`:''}${v.notes.includes('preg')?`<div class="note">${esc(L(T.pregNote))}</div>`:''}</div>
+      <div class="pts ${sign}">${amt}</div>
+      <details class="card" ${v.result==='right'&&!v.notes.length?'':'open'}><summary>${esc(L(T.why))}</summary><dl>
+      ${['what','signs','miss','later'].map(k=>`<dt>${esc(L(T[k]))}</dt><dd>${esc(L(c.card[k]))}</dd>`).join('')}</dl></details></div>`}).join('');
+  const over=S.endReason;
   app.innerHTML=bar()+`<main class="wrap"><section class="settle">
-    <div class="tag" style="color:var(--accent)">${esc(L(D().name))} · ${esc(L(T.review))}</div>
-    <h2>${esc(dayLabel(S.day+1))}</h2>
+    <div class="tag" style="color:var(--accent)">${esc(L(D().name))}</div>
+    <h2>${esc(fill(L(T.nightTitle),{n:S.day}))}</h2>
     <div class="ledger">${rows}</div>
-    <div class="total"><span style="font-family:var(--f-mono);font-size:18px">${esc(L(T.dayTotal))} ${day>0?'+':''}${day} · ${esc(L(T.score))} ${S.score}</span>
-      <button class="btn" data-act="${last?'end':'next'}">${esc(L(last?T.finish:T.nextDay))}</button></div>
+    <div class="panel money"><h3 class="tag" style="padding:0 0 8px">${esc(L(T.ledger))}</h3>
+      <table class="tbl"><tbody>
+        <tr><td>${esc(L(T.start))}</td><td class="n">RM ${g.start}</td></tr>
+        <tr><td>${esc(L(T.pay))}</td><td class="n plus">+RM ${g.pay}</td></tr>
+        <tr><td>${esc(L(T.fines))}</td><td class="n minus">−RM ${g.fines}</td></tr>
+        <tr><td>${esc(L(T.rentPaid))}</td><td class="n minus">−RM ${g.rent}</td></tr>
+        <tr class="tot"><td>${esc(L(T.endMoney))}</td><td class="n ${S.money<0?'minus':''}">RM ${S.money}</td></tr>
+        <tr><td>${esc(L(T.complaints))}</td><td class="n"><span class="pips">${pips(S.complaints)}</span></td></tr>
+      </tbody></table></div>
+    <div class="total" style="margin-top:18px"><span></span>
+      <button class="btn" data-act="${over?'end':'next'}">${over?esc(L(T.seeEnd)):esc(fill(L(T.nextDay),{n:S.day+1}))}</button></div>
   </section></main>`+foot();
 }
 
 const FAM={
-  grandma:{rel:t('外婆','Grandmother'),yr:'1952',ok:t('转心内科后发现冠心病，及时放了支架。','Cardiology found coronary disease and placed a stent in time.'),no:t('两个月后急性心梗，她以为是胃病，送医太晚。','Two months later she had a heart attack, took it for indigestion and arrived too late.')},
-  mother:{rel:t('妈妈','Mother'),yr:'1978',ok:t('糖尿病和围绝经期同时得到处理，血糖稳定下来。','Her diabetes and perimenopause were both treated; her glucose settled.'),no:t('口渴夜尿被当成更年期，两年后出现肾脏并发症。','Thirst and nocturia were called menopause; kidney complications followed two years later.')},
-  daughter:{rel:t('女儿','Daughter'),yr:'2006',ok:t('20 岁确诊。怀孕时提早筛查血糖，宝宝健康出生。','Diagnosed at 20. Screened early in pregnancy; her baby was born healthy.'),no:t('被告知“没事”。备孕两年不成功，才找到原因。','Told she was fine. Two years of trying to conceive before she learned why.')}
+  grandma:{rel:t('外婆','Grandma'),yr:'1952',ok:t('她被送去检查心脏，发现血管堵了，及时放了支架。','She was sent for a heart check; a blocked artery was found and stented in time.'),no:t('两个月后，她以为是胃不舒服，其实是心脏病发作，送医太晚。','Two months later she thought it was indigestion. It was a heart attack, and she reached hospital too late.')},
+  mother:{rel:t('妈妈','Mum'),yr:'1978',ok:t('查出糖尿病和 PCOS，一起治疗后，血糖稳定下来。','Diabetes and PCOS were found and treated together; her blood sugar settled.'),no:t('口渴、夜尿都被当成更年期。两年后，糖尿病伤到了肾。','Thirst and night-time trips were called menopause. Two years later diabetes had damaged her kidneys.')},
+  daughter:{rel:t('女儿','Daughter'),yr:'2006',ok:t('20 岁就确诊。后来怀孕时提早查了血糖，宝宝健康出生。','Diagnosed at 20. When she was pregnant she was checked early, and her baby was born healthy.'),no:t('被告诉“没事”。后来备孕两年都没成功，才找到原因。','Told she was fine. Two years of trying for a baby passed before anyone found out why.')}
 };
 function vEnd(){
-  const all=S.days.flat(),n=all.filter(id=>S.verdicts[id]&&S.verdicts[id].exact).length;
-  const b=bests();if(S.score>(b[D().k]??-1e9)){b[D().k]=S.score;store.set('unseen-best2',b)}
+  const b=bests(),k=D().k,days=S.day;
+  if(days>(b[k]||0)){b[k]=days;store.set(BEST,b)}
+  const why=S.endReason==='fired'?[T.fired,T.firedBody]:[T.evicted,T.evictedBody];
+  const st=S.stats;
+  const shareMsg=fill(L(T.shareText),{d:days})+' '+GAME_URL;
   let fam='';
-  if(S.famDay>=0){
-    const ids=['f1','f2','f3'],noticed=['f1','f2'].some(id=>S.verdicts[id]&&S.verdicts[id].notes.includes('bonus'));
-    fam=`<div class="tag" style="color:var(--accent);margin-top:36px">${esc(L(T.famUnlock))}</div>
-      <h2>${esc(L(T.famTitle))}</h2><p style="max-width:42em">${esc(L(T.famBody))}</p>
+  if(['f1','f2','f3'].every(id=>S.famResults[id])){
+    fam=`<section class="famblock"><div class="tag" style="color:var(--accent)">${esc(L(T.famUnlock))}</div><h2>${esc(L(T.famTitle))}</h2><p style="max-width:42em">${esc(L(T.famBody))}</p>
       <div class="thread"><span>${esc(L(FAM.grandma.rel))}</span><i></i><span>${esc(L(FAM.mother.rel))}</span><i></i><span>${esc(L(FAM.daughter.rel))}</span></div>
-      <div class="family">${ids.map(id=>{const c=CASE[id],f=FAM[c.fam],ok=S.verdicts[id]&&S.verdicts[id].exact;
+      <div class="family">${['f1','f2','f3'].map(id=>{const c=CASE[id],f=FAM[c.fam],ok=S.famResults[id]!=='wrong';
         return `<div class="fam"><span class="yr">${f.yr}</span><h3>${esc(L(f.rel))} · ${esc(L(c.name))}</h3><span class="badge ${ok?'ok':'no'}">${esc(L(ok?T.seen:T.unseen))}</span><p style="margin:0">${esc(L(ok?f.ok:f.no))}</p></div>`}).join('')}</div>
-      <p class="muted">${esc(L(noticed?T.noticed:T.notNoticed))}</p>
-      <blockquote>${esc(L(T.ifquote))}</blockquote>`;
+      <blockquote>${esc(L(T.ifquote))}</blockquote></section>`;
   }
-  app.innerHTML=bar()+`<main class="wrap"><section class="settle" style="max-width:980px">
-    <div class="tag" style="color:var(--accent)">${esc(L(T.endTitle))} · ${esc(L(D().name))}</div>
-    <h2 style="font-family:var(--f-mono)">${S.score} · ${esc(L(T.accuracy))} ${n}/${all.length}</h2>
+  app.innerHTML=`<main class="wrap"><section class="settle" style="max-width:920px">
+    <div class="tag" style="color:var(--accent)">${esc(L(D().name))} · GAME OVER</div>
+    <h2>${esc(L(why[0]))}</h2><p class="muted">${esc(L(why[1]))}</p>
+    <p class="bigline">${esc(fill(L(T.survived),{d:days,p:st.seen}))}</p>
+    <div class="daystats"><div><span class="tag">${esc(L(T.right))}</span><b>${st.right}</b></div><div><span class="tag">${esc(L(T.caught))}</span><b>${st.caught}</b></div><div><span class="tag">${esc(L(T.missed))}</span><b>${st.missed}</b></div></div>
+    <section class="signcard">
+      <h2>${esc(L(T.signsTitle))}</h2><p>${esc(L(T.signsLead))}</p>
+      <ol class="signs">${T.signList.map(s=>`<li>${esc(L(s))}</li>`).join('')}</ol>
+      <p class="action">${esc(L(T.signsAction))}</p>
+      <h3>${esc(L(T.dontSay))}</h3>
+      <div class="chips">${T.dontList.map(s=>`<span class="chip strike">${esc(L(s))}</span>`).join('')}</div>
+      <p class="muted" style="font-size:13px;margin-top:10px">${esc(L(T.painNote))}</p>
+    </section>
+    <section class="sharebox"><h3>${esc(L(T.share))}</h3><p class="sharetext" id="sharetext">${esc(shareMsg)}</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-act="copy">${esc(L(T.copy))}</button>${S.copyMsg?`<span class="muted">${esc(L(T[S.copyMsg]))}</span>`:''}</div></section>
     ${fam}
-    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap"><button class="btn" data-act="new">${esc(L(T.newGame))}</button><button class="btn ghost" data-act="home">${esc(L(T.again))}</button></div>
+    <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap"><button class="btn" data-act="new">${esc(L(T.again))}</button><button class="btn ghost" data-act="home">${esc(L(T.home))}</button></div>
   </section></main>`+foot();
 }
 
 function vModal(){
   if(!S.modal) return '';
-  if(S.modal==='manual'){const m=MANUAL[S.mtab];
+  if(S.modal==='manual'){const m=MANUAL[S.mtab]||MANUAL.play;
     return `<div class="veil" data-veil="1"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(L(T.manual))}"><h2>${esc(L(T.manual))}</h2>
       <div class="tabs">${Object.entries(MANUAL).map(([k,v])=>`<button data-mtab="${k}" aria-pressed="${k===S.mtab}">${esc(L(v.tab))}</button>`).join('')}</div>
       ${m.html()}<div class="close"><button class="btn ghost" data-close="1">${esc(L(T.close))}</button></div></div></div>`}
   return `<div class="veil" data-veil="1"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(L(T.settings))}" style="width:min(440px,100%)"><h2>${esc(L(T.settings))}</h2>
     <p class="tag">${esc(L(T.lang))}</p><div class="seg" style="margin:8px 0 22px"><button data-lang="zh" aria-pressed="${S.lang==='zh'}">中文</button><button data-lang="en" aria-pressed="${S.lang==='en'}">English</button></div>
-    <p class="tag">${esc(L(t('终端配色','Terminal colours')))}</p><div class="seg" style="margin:8px 0 22px"><button data-skin="light" aria-pressed="${S.skin==='light'}">${esc(L(t('浅色','Light')))}</button><button data-skin="dark" aria-pressed="${S.skin==='dark'}">${esc(L(t('深色','Dark')))}</button></div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      ${S.msg==='confirmClear'?`<button class="btn" data-act="clearYes">${esc(L(T.clearConfirm))}</button>`:`<button class="btn ghost" data-act="clear" ${saved()?'':'disabled'}>${esc(L(T.clear))}</button>`}
-      ${S.msg==='cleared'?`<span class="muted">${esc(L(T.cleared))}</span>`:''}</div>
+    <p class="tag">${esc(L(t('配色','Colours')))}</p><div class="seg" style="margin:8px 0 22px"><button data-skin="light" aria-pressed="${S.skin==='light'}">${esc(L(t('浅色','Light')))}</button><button data-skin="dark" aria-pressed="${S.skin==='dark'}">${esc(L(t('深色','Dark')))}</button></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${S.msg==='confirmClear'?`<button class="btn" data-act="clearYes">${esc(L(T.clearConfirm))}</button>`:`<button class="btn ghost" data-act="clear" ${saved()?'':'disabled'}>${esc(L(T.clear))}</button>`}${S.msg==='cleared'?`<span class="muted">${esc(L(T.cleared))}</span>`:''}</div>
     <div class="close"><button class="btn ghost" data-close="1">${esc(L(T.close))}</button></div></div></div>`;
 }
-
 function vCoach(){
   if(S.tut==null||S.screen!=='play') return '';
   const st=TUT[S.tut];
-  return `<div class="blocker"></div><div class="coach" role="dialog" aria-label="${esc(L(COACH.name))}">
-    <canvas id="coachpx" width="64" height="64" aria-hidden="true"></canvas>
-    <div class="nm"><span>${esc(L(COACH.name))}</span><span>${S.tut+1} / ${TUT.length}</span></div>
-    <div class="tag">${esc(L(COACH.role))}</div><div class="ttl">${esc(L(st.h))}</div><p>${esc(L(st.p))}</p>
-    <div class="acts"><button class="btn" data-act="tutNext">${esc(L(S.tut===TUT.length-1?t('开始接诊','Start'):t('明白','Got it')))}</button>
-      <button class="skip" data-act="tutSkip">${esc(L(t('跳过教程','Skip orientation')))}</button></div></div>`;
+  return `<div class="blocker"></div><div class="coach" role="dialog" aria-label="${esc(L(COACH.name))}"><canvas id="coachpx" width="64" height="64" aria-hidden="true"></canvas>
+    <div class="nm"><span>${esc(L(COACH.name))}</span><span>${S.tut+1} / ${TUT.length}</span></div><div class="tag">${esc(L(COACH.role))}</div><div class="ttl">${esc(L(st.h))}</div><p>${esc(L(st.p))}</p>
+    <div class="acts"><button class="btn" data-act="tutNext">${esc(L(S.tut===TUT.length-1?t('开始看诊','Start'):t('明白','Got it')))}</button><button class="skip" data-act="tutSkip">${esc(L(t('跳过','Skip')))}</button></div></div>`;
 }
 
+const app=document.getElementById('app');
 function render(){
   document.documentElement.dataset.skin=S.skin;
-  ({title:vTitle,diff:vDiff,day:vDay,play:vPlay,settle:vSettle,end:vEnd})[S.screen]();
+  ({title:vTitle,diff:vDiff,day:vDay,play:vPlay,night:vNight,end:vEnd})[S.screen]();
   app.insertAdjacentHTML('beforeend',vModal()+vCoach());
-  if(S.tut!=null&&S.screen==='play'){const cv=document.getElementById('coachpx');if(cv)drawCoach(cv);
-    const sel=TUT[S.tut].sel,el=sel&&document.querySelector(sel);if(el){el.classList.add('spot');el.scrollIntoView({block:'center',behavior:'smooth'})}}
+  if(S.tut!=null&&S.screen==='play'){const cv=document.getElementById('coachpx');if(cv)drawCoach(cv);const sel=TUT[S.tut].sel,el=sel&&document.querySelector(sel);if(el){el.classList.add('spot');el.scrollIntoView({block:'center',behavior:'smooth'})}}
   document.documentElement.lang=S.lang==='zh'?'zh-CN':'en';
   persist();
 }
 const top=()=>window.scrollTo({top:0});
 
-/* ---------- events ---------- */
+function closeDay(){
+  const list=today(),start=S.money;let pay=0,fines=0;
+  list.forEach(c=>{const v=S.verdicts[c.id];pay+=v.pay;fines+=v.fine;S.complaints+=v.complaint;S.stats.seen++;
+    if(v.result==='right')S.stats.right++;
+    if(hasPcos(c)&&c.ans==='pcos'){if(v.choice==='pcos')S.stats.caught++;else S.stats.missed++}
+    const mins=revOf(c.id).reduce((m,k)=>m+(k.startsWith('ask')?1:CLUE[k].c),0);
+    track('case_result',{difficulty:D().k,case_id:c.id,result:v.result,advice:v.choice,minutes_used:mins,checks_used:revOf(c.id).length,red_flag:c.red?1:0,family:c.fam||'none'});
+  });
+  if(list.some(c=>c.fam)) list.forEach(c=>{S.famResults[c.id]=S.verdicts[c.id].result});
+  const rent=rentFor(S.day);S.money=start+pay-fines-rent;
+  S.dayLog={start,pay,fines,rent};
+  S.endReason=S.complaints>=MAX_COMPLAINTS?'fired':(S.money<0?'evicted':null);
+  track('day_complete',{difficulty:D().k,day:S.day,pay,fines,rent,money:S.money,complaints:S.complaints,right:list.filter(c=>S.verdicts[c.id].result==='right').length});
+  if(S.endReason) track('game_over',{difficulty:D().k,reason:S.endReason,days:S.day,seen:S.stats.seen,right:S.stats.right,pcos_caught:S.stats.caught,pcos_missed:S.stats.missed,family:S.famDone?'met':'none'});
+}
+
 app.addEventListener('click',e=>{
   if(e.target.dataset&&e.target.dataset.veil){S.modal=null;S.msg=null;render();return}
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
@@ -971,52 +989,37 @@ app.addEventListener('click',e=>{
   if(d.close){S.modal=null;S.msg=null;render();return}
   if(d.diff){S.diff=+d.diff;render();return}
   if(d.pt){S.cur=d.pt;render();top();return}
-  if(d.clue){const c=CASE[S.cur],k=d.clue,cost=k.startsWith('ask')?1:CLUE[k].c;
-    if(S.time<cost||revOf(c.id).includes(k))return;S.time-=cost;revOf(c.id).push(k);(S.order[c.id] ||= []).push(k);render();return}
+  if(d.clue){const c=CASE[S.cur],k=d.clue,cost=k.startsWith('ask')?1:CLUE[k].c;if(S.time<cost||revOf(c.id).includes(k))return;S.time-=cost;revOf(c.id).push(k);(S.order[c.id] ||= []).push(k);render();return}
   if(d.note){const a=(S.notes[S.cur] ||= [0,0,0]);a[+d.note]^=1;render();return}
-  if(d.v){
-    if(D().multi){let p=(S.pick[S.cur] ||= []);
-      if(d.v==='none'){S.pick[S.cur]=p.includes('none')?[]:['none']}
-      else{p=p.filter(k=>k!=='none');const i=p.indexOf(d.v);i<0?p.push(d.v):p.splice(i,1);S.pick[S.cur]=p}}
-    else S.pick[S.cur]=d.v;
-    render();return}
+  if(d.v){S.pick[S.cur]=d.v;render();return}
   switch(d.act){
-    case 'new':{const l=S.lang,sk=S.skin;S=fresh(l,sk);S.screen='diff';render();top();break}
-    case 'go':newRun(S.diff);track('game_start',{difficulty:D().k,family_day:S.famDay>=0?S.famDay+1:0});render();top();break;
-    case 'continue':{const sv=saved();if(sv){S={...fresh(S.lang,S.skin),...sv,lang:S.lang,skin:S.skin};track('game_continue',{difficulty:D().k,day:S.day+1});render();top()}break}
+    case 'new':{const l=S.lang,sk=S.skin,df=S.diff;S=fresh(l,sk);S.diff=df;S.screen='diff';render();top();break}
+    case 'go':newRun(S.diff);track('game_start',{difficulty:D().k});render();top();break;
+    case 'continue':{const sv=saved();if(sv){S={...fresh(S.lang,S.skin),...sv,lang:S.lang,skin:S.skin};track('game_continue',{difficulty:D().k,day:S.day});render();top()}break}
     case 'tutorial':newRun(0);S.screen='play';S.tut=0;track('tutorial_start');render();top();break;
     case 'tutNext':S.tut=S.tut<TUT.length-1?S.tut+1:null;render();if(S.tut==null)top();break;
     case 'tutSkip':track('tutorial_skip',{step:S.tut+1});S.tut=null;render();top();break;
     case 'home':S=fresh(S.lang,S.skin);render();top();break;
-    case 'begin':S.screen='play';S.time=D().time;S.cur=null;render();top();break;
-    case 'confirm':{const c=CASE[S.cur],ch=S.pick[c.id];if(!ch||(Array.isArray(ch)&&!ch.length))return;
-      const choice=Array.isArray(ch)?[...ch]:ch;S.verdicts[c.id]={choice,...judge(c,choice)};render();break}
-    case 'settle':{
-      const list=today(),dayPts=list.reduce((s,c)=>s+S.verdicts[c.id].pts,0);S.score+=dayPts;
-      list.forEach(c=>{const v=S.verdicts[c.id],mins=revOf(c.id).reduce((m,k)=>m+(k.startsWith('ask')?1:CLUE[k].c),0);
-        track('case_result',{difficulty:D().k,case_id:c.id,result:v.exact?'correct':(v.pts>0?'partial':'wrong'),verdict:Array.isArray(v.choice)?v.choice.join('+'):v.choice,minutes_used:mins,clues_used:revOf(c.id).length,red_flag:c.red?1:0,family:c.fam||'none'})});
-      track('day_complete',{difficulty:D().k,day:S.day+1,day_score:dayPts,correct:list.filter(c=>S.verdicts[c.id].exact).length,minutes_left:S.time});
-      S.screen='settle';render();top();break}
-    case 'next':S.day++;S.screen='day';S.cur=null;render();top();break;
-    case 'end':{
-      const all=S.days.flat(),ok=all.filter(id=>S.verdicts[id]&&S.verdicts[id].exact).length;
-      const fam=S.famDay<0?'none':(['f1','f2'].some(id=>S.verdicts[id]&&S.verdicts[id].notes.includes('bonus'))?'noticed':'missed');
-      track('run_end',{difficulty:D().k,score:S.score,correct:ok,total:all.length,family:fam});
-      S.screen='end';render();top();break}
+    case 'begin':S.screen='play';S.cur=null;render();top();break;
+    case 'confirm':{const c=CASE[S.cur],ch=S.pick[c.id];if(!ch)return;S.verdicts[c.id]={choice:ch,...judge(c,ch)};render();break}
+    case 'settle':closeDay();S.screen='night';render();top();break;
+    case 'next':startDay();render();top();break;
+    case 'end':S.screen='end';render();top();break;
+    case 'copy':{const txt=document.getElementById('sharetext').textContent;
+      const ok=()=>{S.copyMsg='copied';track('share_copy',{days:S.day});render()},bad=()=>{S.copyMsg='copyFail';render();const el=document.getElementById('sharetext');if(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}};
+      try{navigator.clipboard.writeText(txt).then(ok,bad)}catch(_){bad()}break}
     case 'clear':S.msg='confirmClear';render();break;
-    case 'clearYes':store.del('unseen-save2');S.msg='cleared';render();break;
+    case 'clearYes':store.del(SAVE);S.msg='cleared';render();break;
   }
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.modal){S.modal=null;S.msg=null;render()}});
 
-(function(){
-  const tok=['LH 9.4','FSH 4.1','TSH 2.3','PRL 18','AMH 6.8','HbA1c 5.9','T 2.6','SHBG 24','E2 180','17-OHP 1.1','OGTT 8.4','BMI 21','hCG <5','FPG 5.8','BP 128/82','DHEAS 6.2'];
+(function(){const tok=['LH 9.4','FSH 4.1','TSH 2.3','PRL 18','AMH 6.8','HbA1c 5.9','T 2.6','SHBG 24','E2 180','17-OHP 1.1','OGTT 8.4','BMI 21','hCG <5','FPG 5.8','BP 128/82','DHEAS 6.2'];
   const mk=()=>{let s='';for(let i=0;i<180;i++){s+=tok[(i*7+3)%tok.length].padEnd(12)+(i%3===2?'\n':'')}return s+s};
-  document.getElementById('f1').textContent=mk();document.getElementById('f2').textContent=mk().split('\n').slice(7).join('\n');
-})();
+  document.getElementById('f1').textContent=mk();document.getElementById('f2').textContent=mk().split('\n').slice(7).join('\n')})();
 
-const start=()=>render();
-hot&&hot.ready?hot.ready(start):start();
+const startApp=()=>render();
+hot&&hot.ready?hot.ready(startApp):startApp();
 })();
 
 </script>
