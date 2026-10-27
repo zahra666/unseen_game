@@ -11,7 +11,7 @@ PCOS（多囊卵巢综合征）很常见，大约每 10 个女性就有 1 个，
 
 在这个游戏里，你是社区诊所新来的医生。每天随机来 3 位女性，你问问题、做检查，然后给她一个建议：可能是 PCOS 去查一下、可能是别的问题去看其他科，或者暂时没事。
 
-- **生存玩法：** 建议对了拿工资；漏掉病人会被投诉。每天晚上要交房租，房租会涨。交不起房租就被赶出家门，被投诉 3 次就被辞退。看你能撑几天。
+- **生存玩法：** 建议对了拿工资；漏掉病人会被投诉。每天晚上要交房租（简单 RM 100、中等 RM 300、困难 RM 500）。交不起房租就被赶出家门，被投诉 3 次就被辞退。看你能撑几天。
 - **三档难度：** 简单（信号明显）、中等（有别的病来捣乱）、困难（好几个问题叠在一起）
 - **记住信号：** 游戏结束时会给你一张"记住这些信号"的卡片，可以一键转给在意的人
 - **隐藏彩蛋：** 困难模式里藏着一家三代的故事
@@ -24,7 +24,7 @@ PCOS (polycystic ovary syndrome) is common: about 1 in 10 women have it, and man
 
 You are the new doctor at a community clinic. Three women come in each day. Ask questions, order tests, then give your advice: could be PCOS, get checked; something else, see another specialist; or nothing to worry about for now.
 
-- **Survival:** right advice earns pay; missed patients bring complaints. Rent is due every night and keeps rising. Can't pay and you're evicted; three complaints and you're fired. How long can you last?
+- **Survival:** right advice earns pay; missed patients bring complaints. Rent is due every night (RM 100, 300 or 500 by difficulty). Can't pay and you're evicted; three complaints and you're fired. How long can you last?
 - **Three levels:** clear signs; other problems getting in the way; several problems at once
 - **Remember the signs:** game over shows a card of PCOS signs you can send to someone you care about
 - **Hidden story:** a three-generation family waits in hard mode

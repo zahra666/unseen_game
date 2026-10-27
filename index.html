@@ -338,14 +338,14 @@ const T = {
 
 /* ---------- difficulty ---------- */
 const DIFF = [
-  {k:'easy', name:t('简单','Easy'), tag:t('信号很明显','Clear signs'), money:1000, rent:250, time:60,
+  {k:'easy', name:t('简单','Easy'), tag:t('信号很明显','Clear signs'), money:1000, rent:100, time:60,
    desc:t('病人的信号比较明显，很适合第一次玩。学会数信号：月经少、粗毛痘痘掉发、检查异常。','Signs are fairly clear. A good first game: learn to count the signs.')},
   {k:'medium', name:t('中等','Medium'), tag:t('有别的病来捣乱','Other problems get in the way'), money:800, rent:300, time:50,
    desc:t('有的病看起来很像 PCOS，有的 PCOS 被“压力大”“太胖”或避孕药藏起来了。','Some illnesses look like PCOS, and some PCOS hides behind “stress”, weight or the pill.')},
-  {k:'hard', name:t('困难','Hard'), tag:t('好几个问题叠在一起','Several problems at once'), money:700, rent:350, time:45, family:true,
+  {k:'hard', name:t('困难','Hard'), tag:t('好几个问题叠在一起','Several problems at once'), money:700, rent:500, time:45, family:true,
    desc:t('一个病人可能同时有几个问题，以前的记录也常常没有。还会遇到需要马上处理的急症。','One patient may have several problems and no past records. Some cases are emergencies.')}
 ];
-const RENT_STEP=50, RENT_EVERY=3, PAY=200, PART_PAY=80, FINE=100, RED_FINE=300, MAX_COMPLAINTS=3;
+const PAY=200, PART_PAY=80, FINE=100, RED_FINE=300, MAX_COMPLAINTS=3;
 const BULLETIN=[t('今天天气不错。','Nice weather today.'),t('听说楼下新开了一家奶茶店。','A new bubble tea shop opened downstairs.'),t('护士说今天候诊的人有点多。','The nurse says it’s busy today.'),t('房东发消息提醒你记得交房租。','Your landlord texted: don’t forget the rent.'),t('诊所的空调又坏了。','The clinic air-con broke again.'),t('院长说最近投诉有点多，让大家注意。','The director says complaints are up; be careful.')];
 const FAMILY_BULLETIN=t('护士说：上午有一家三口一起来看病。','The nurse says a family of three is coming in together this morning.');
 
@@ -639,7 +639,7 @@ const MANUAL={
       <li>${esc(L(t('听她说哪里不舒服，然后从左边选择要问的问题、要做的检查。每一项都花时间，一天的时间有限。','Hear what’s bothering her, then pick questions and tests on the left. Each one takes time, and the day is short.')))}</li>
       <li>${esc(L(t('最后给她一个建议：可能是 PCOS，建议去查；可能是别的问题，建议看其他科；或者暂时没事，放心。','Then give your advice: could be PCOS, get checked; something else, see another specialist; or nothing to worry about for now.')))}</li>
       <li>${esc(L(t('晚上下班时揭晓结果。建议对了拿工资；漏掉了病人会被投诉，还要扣钱。','Results come at closing time. Right advice earns pay; missing a patient brings a complaint and a fine.')))}</li>
-      <li>${esc(L(t('每天晚上要交房租，房租隔几天就涨一次。','Rent is due every night, and it goes up every few days.')))}</li>
+      <li>${esc(L(t('每天晚上要交房租：简单 RM 100，中等 RM 300，困难 RM 500。','Rent is due every night: RM 100 on Easy, RM 300 on Medium, RM 500 on Hard.')))}</li>
     </ol>
     <div class="scroll"><table class="tbl"><tbody>
       <tr><td>${esc(L(t('建议正确','Right advice')))}</td><td class="n plus">+RM ${PAY}</td></tr>
@@ -699,7 +699,7 @@ function persist(){
 }
 const savePrefs=()=>store.set('unseen-prefs',{lang:S.lang,skin:S.skin});
 const D=()=>DIFF[S.diff];
-const rentFor=day=>D().rent+RENT_STEP*Math.floor((day-1)/RENT_EVERY);
+const rentFor=()=>D().rent;
 const revOf=id=>(S.rev[id] ||= []);
 const today=()=>S.todayIds.map(id=>CASE[id]);
 const dayLabel=n=>fill(L(T.day),{n});
@@ -785,7 +785,7 @@ function vDiff(){
     <div class="diffgrid">${DIFF.map((d,i)=>`<div class="dcard" aria-selected="${S.diff===i}">
       <div class="dn">${esc(L(d.name))}</div><div class="dl">${esc(L(d.tag))}</div><p>${esc(L(d.desc))}</p>
       <dl><dt>${esc(L(t('起始存款','Starting savings')))}</dt><dd>RM ${d.money}</dd>
-        <dt>${esc(L(t('每晚房租','Nightly rent')))}</dt><dd>RM ${d.rent} ${esc(L(t('起，每 3 天涨 50','and +50 every 3 days')))}</dd>
+        <dt>${esc(L(t('每晚房租','Nightly rent')))}</dt><dd>RM ${d.rent}</dd>
         <dt>${esc(L(t('每天时间','Time per day')))}</dt><dd>${d.time} ${esc(L(T.min))}</dd>
         <dt>${esc(L(t('投诉上限','Complaint limit')))}</dt><dd>${MAX_COMPLAINTS}</dd>
         <dt>${esc(L(T.bestDays))}</dt><dd>${esc(fill(L(T.days),{n:b[d.k]||0}))}</dd></dl>
